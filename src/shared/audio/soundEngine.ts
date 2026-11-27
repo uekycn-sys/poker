@@ -153,6 +153,59 @@ class SoundEngine {
       this.playTone(f, f * 1.02, 0.18, 'sine', 0.12, idx * 0.06);
     });
   }
+
+  public playShuffle(): void {
+    for (let i = 0; i < 8; i++) {
+      this.playNoise(0.038, 1600 + (i % 4) * 260, 1.4, 0.075, i * 0.042);
+    }
+    this.playNoise(0.09, 950, 0.9, 0.12, 0.36);
+  }
+
+  public playChipStack(intensity: 'small' | 'medium' | 'large' = 'medium'): void {
+    const count = intensity === 'large' ? 5 : intensity === 'medium' ? 3 : 2;
+    for (let i = 0; i < count; i++) {
+      const delay = i * 0.04;
+      this.playTone(1950 + i * 160, 2600 + i * 140, 0.048, 'sine', 0.085, delay);
+      this.playTone(3100 + i * 120, 3400, 0.03, 'triangle', 0.045, delay + 0.015);
+    }
+  }
+
+  public playCheck(): void {
+    this.playTone(145, 72, 0.055, 'sine', 0.14, 0);
+    this.playTone(155, 76, 0.055, 'sine', 0.12, 0.1);
+  }
+
+  public playFold(): void {
+    this.playNoise(0.09, 1050, 0.85, 0.09, 0);
+    this.playTone(210, 110, 0.08, 'sine', 0.06, 0.01);
+  }
+
+  public playHeartbeat(beats = 3): void {
+    for (let i = 0; i < beats; i++) {
+      const base = i * 0.62;
+      // Lub
+      this.playTone(68, 36, 0.14, 'sine', 0.26, base);
+      // Dub
+      this.playTone(58, 32, 0.16, 'sine', 0.2, base + 0.16);
+    }
+  }
+
+  public playShowdownReveal(): void {
+    this.playNoise(0.06, 1750, 1.1, 0.1, 0);
+    this.playTone(587.33, 880, 0.18, 'triangle', 0.09, 0.04);
+  }
+
+  public playQuizSuccess(): void {
+    const notes = [659.25, 880, 1174.66];
+    notes.forEach((f, idx) => {
+      this.playTone(f, f * 1.03, 0.16, 'triangle', 0.11, idx * 0.06);
+    });
+  }
+
+  public playQuizFail(): void {
+    this.playTone(280, 190, 0.18, 'sawtooth', 0.07, 0);
+    this.playTone(210, 140, 0.22, 'sine', 0.09, 0.1);
+  }
 }
 
 export const soundEngine = new SoundEngine();

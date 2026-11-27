@@ -206,27 +206,27 @@ export const TableEffects: React.FC<TableEffectsProps> = ({ fx, onComplete }) =>
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 1.15, y: -16 }}
             transition={{ type: 'spring', stiffness: 360, damping: 22 }}
-            className="absolute inset-x-0 top-[28%] flex justify-center"
+            className="absolute inset-x-0 top-[24%] flex justify-center px-4"
           >
             <div
-              className={`rounded-2xl border px-7 py-3 text-center shadow-2xl backdrop-blur-md ${
+              className={`rounded-2xl border-2 px-6 py-2.5 text-center shadow-[0_18px_48px_rgba(0,0,0,0.72),inset_0_1px_0_rgba(255,255,255,0.28)] backdrop-blur-md ${
                 fx.kind === 'ROCKET'
-                  ? 'border-sky-300/70 bg-gradient-to-r from-rose-900/90 via-slate-900/90 to-sky-900/90 text-sky-100'
+                  ? 'border-sky-300/80 bg-gradient-to-r from-rose-900/95 via-slate-900/95 to-sky-900/95 text-sky-100'
                   : fx.kind === 'BOMB' ||
                       fx.kind === 'SPRING' ||
                       fx.kind === 'ANTI_SPRING' ||
                       fx.kind === 'ALL_IN' ||
                       fx.kind === 'JACKPOT' ||
                       fx.kind === 'VICTORY'
-                    ? 'border-amber-300/80 bg-gradient-to-r from-amber-900/90 via-amber-700/90 to-amber-900/90 text-amber-100'
-                    : 'border-emerald-300/60 bg-emerald-950/85 text-amber-200'
+                    ? 'border-amber-300/90 bg-gradient-to-r from-amber-900/95 via-amber-700/95 to-amber-900/95 text-amber-100'
+                    : 'border-emerald-300/70 bg-emerald-950/90 text-amber-200'
               }`}
             >
-              <div className="text-2xl md:text-3xl font-black tracking-wider drop-shadow">
+              <div className="gold-foil-text text-xl sm:text-2xl md:text-3xl font-black tracking-wider">
                 {fx.label}
               </div>
               {fx.subLabel && (
-                <div className="mt-0.5 text-xs font-bold text-amber-200/85">{fx.subLabel}</div>
+                <div className="mt-0.5 text-[11px] sm:text-xs font-bold text-amber-200/90">{fx.subLabel}</div>
               )}
             </div>
           </motion.div>

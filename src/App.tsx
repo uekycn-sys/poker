@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   BankruptcyAidModal,
+  LandscapeHintOverlay,
   soundEngine,
   speechEngine,
   usePlayerStore,
@@ -67,6 +68,7 @@ export function App() {
         <Lobby onLaunchGame={handleLaunchGame} />
       )}
       <BankruptcyAidModal />
+      <LandscapeHintOverlay />
     </>
   );
 }

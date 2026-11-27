@@ -16,6 +16,7 @@ import {
   MessageSquareOff,
 } from 'lucide-react';
 import { AIDifficulty } from '../engine';
+import { FullscreenButton } from '../../../shared/components';
 import { getRankTier, usePlayerStore } from '../../../shared/store/playerStore';
 import { useDoudizhuProfileStore } from '../store/doudizhuProfileStore';
 import { useDoudizhuGameStore } from '../store/doudizhuGameStore';
@@ -71,9 +72,9 @@ export const DoudizhuHub: React.FC<DoudizhuHubProps> = ({ onExitToLobby }) => {
     totalMatches > 0 ? Math.round(((springCount + antiSpringCount) / totalMatches) * 100) : 0;
 
   return (
-    <div className="felt-table min-h-screen w-full px-4 py-6 md:px-10 md:py-8">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <header className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-amber-400/30 bg-black/35 px-6 py-4 backdrop-blur-md shadow-2xl">
+    <div className="casino-room-bg safe-area-pad min-h-[100dvh] w-full px-4 py-4 sm:py-6 md:px-10">
+      <div className="mx-auto max-w-5xl space-y-5">
+        <header className="hud-glass flex flex-wrap items-center justify-between gap-3 rounded-3xl px-5 py-3.5">
           <div className="flex flex-wrap items-center gap-3.5">
             <button
               type="button"
@@ -117,6 +118,7 @@ export const DoudizhuHub: React.FC<DoudizhuHubProps> = ({ onExitToLobby }) => {
               )}
               中文配音
             </button>
+            <FullscreenButton />
           </div>
         </header>
 
@@ -243,7 +245,7 @@ export const DoudizhuHub: React.FC<DoudizhuHubProps> = ({ onExitToLobby }) => {
                 whileTap={{ scale: 0.985 }}
                 type="button"
                 onClick={() => startMatch()}
-                className="mt-6 flex w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 py-4 text-lg font-black text-emerald-950 shadow-[0_12px_30px_rgba(245,158,11,0.38)] transition hover:brightness-105 cursor-pointer"
+                className="game-btn-gold mt-6 flex w-full items-center justify-center gap-2.5 rounded-2xl py-4 text-lg font-black cursor-pointer"
               >
                 <Play className="h-5 w-5 fill-current" /> 开始对局 · 实战训练
               </motion.button>

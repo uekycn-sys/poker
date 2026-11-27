@@ -3,8 +3,8 @@ import { GAME_REGISTRY, getAvailableGames, getGameById, getUpcomingGames } from 
 import { getRankTier, usePlayerStore } from '../shared/store/playerStore';
 
 describe('Poker Master Suite Registry', () => {
-  it('registers doudizhu as available and upcoming games with valid metadata', () => {
-    expect(GAME_REGISTRY.length).toBeGreaterThanOrEqual(4);
+  it('registers only implemented doudizhu and texas-holdem games with valid metadata', () => {
+    expect(GAME_REGISTRY).toHaveLength(2);
 
     const doudizhu = getGameById('doudizhu');
     expect(doudizhu).toBeDefined();
@@ -12,13 +12,18 @@ describe('Poker Master Suite Registry', () => {
     expect(doudizhu?.component).toBeDefined();
     expect(doudizhu?.stakes.length).toBeGreaterThan(0);
 
+    const holdem = getGameById('texas-holdem');
+    expect(holdem).toBeDefined();
+    expect(holdem?.status).toBe('available');
+    expect(holdem?.component).toBeDefined();
+    expect(holdem?.stakes.length).toBeGreaterThan(0);
+
     const available = getAvailableGames();
-    expect(available.some((g) => g.id === 'doudizhu')).toBe(true);
+    expect(available.map((g) => g.id)).toEqual(['doudizhu', 'texas-holdem']);
 
     const upcoming = getUpcomingGames();
-    expect(upcoming.map((g) => g.id)).toEqual(
-      expect.arrayContaining(['texas-holdem', 'guandan', 'blackjack']),
-    );
+    expect(upcoming).toHaveLength(0);
+
     for (const game of GAME_REGISTRY) {
       expect(game.trainingPitch.length).toBeGreaterThan(0);
       expect(game.stakes.length).toBeGreaterThan(0);

@@ -96,6 +96,18 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     description: '在残局训练营破解任意一道必胜残局',
     icon: 'puzzle',
   },
+  {
+    id: 'holdem_first_pot',
+    title: '德州初捷',
+    description: '在 6 人桌无限注德州扑克赢得第 1 个底池',
+    icon: 'trophy',
+  },
+  {
+    id: 'holdem_outs_master',
+    title: '算牌神童',
+    description: '在德州扑克 Outs 盲测训练中累计答对 3 题',
+    icon: 'sparkles',
+  },
 ];
 
 export interface GameStatSummary {

@@ -24,6 +24,17 @@ export const HandBar: React.FC = () => {
 
   const [dragState, setDragState] = useState<{ start: number; current: number } | null>(null);
   const dragRef = useRef<{ start: number; current: number } | null>(null);
+  const [viewport, setViewport] = useState(() =>
+    typeof window !== 'undefined'
+      ? { w: window.innerWidth, h: window.innerHeight }
+      : { w: 1280, h: 800 },
+  );
+
+  useEffect(() => {
+    const onResize = () => setViewport({ w: window.innerWidth, h: window.innerHeight });
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   const selectedSet = useMemo(() => new Set(selectedCardIds), [selectedCardIds]);
   const coachSet = useMemo(
@@ -77,12 +88,24 @@ export const HandBar: React.FC = () => {
   const previewMin = dragState ? Math.min(dragState.start, dragState.current) : -1;
   const previewMax = dragState ? Math.max(dragState.start, dragState.current) : -1;
 
-  const overlapClass =
-    sortedHand.length > 16
-      ? '-ml-9 md:-ml-10 first:ml-0'
-      : sortedHand.length > 10
-        ? '-ml-8 md:-ml-9 first:ml-0'
-        : '-ml-6 md:-ml-7 first:ml-0';
+  // Dynamic step width so up to 20 cards fit cleanly on both desktop fullscreen and mobile landscape
+  const isShortLandscape = viewport.h <= 540;
+  const isUltraShort = viewport.h <= 410;
+  const cardWidth = isUltraShort
+    ? 52
+    : isShortLandscape
+      ? 58
+      : viewport.w >= 1440 && viewport.h >= 820
+        ? 94
+        : 84;
+  const availableWidth = Math.max(260, viewport.w - (isShortLandscape ? 330 : 340));
+  const count = Math.max(1, sortedHand.length);
+  const idealVisibleStep = isShortLandscape ? 28 : 42;
+  const maxStep = count > 1 ? Math.floor((availableWidth - cardWidth) / (count - 1)) : cardWidth;
+  const visibleStep = Math.max(16, Math.min(idealVisibleStep, maxStep));
+  const overlapPx = Math.max(18, cardWidth - visibleStep);
+  const liftSelected = isShortLandscape ? -14 : -22;
+  const liftPreview = isShortLandscape ? -8 : -12;
 
   return (
     <div className="relative flex flex-col items-center">
@@ -92,7 +115,7 @@ export const HandBar: React.FC = () => {
             initial={{ opacity: 0, y: 8, scale: 0.94 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6 }}
-            className="mb-2 rounded-full border border-amber-300/60 bg-amber-500/90 px-3.5 py-1 text-xs font-bold text-emerald-950 shadow-lg"
+            className="mb-1 rounded-full border border-amber-300/60 bg-amber-500/95 px-3 py-0.5 text-[11px] font-black text-emerald-950 shadow-lg"
           >
             ✨ {smartSelectionNotice}
           </motion.div>
@@ -101,7 +124,9 @@ export const HandBar: React.FC = () => {
 
       <div
         onPointerMove={handlePointerMove}
-        className="flex touch-none select-none items-end justify-center px-4 pb-1 pt-6"
+        className={`flex touch-none select-none items-end justify-center px-2 pb-1 ${
+          isShortLandscape ? 'pt-2' : 'pt-6'
+        }`}
       >
         {sortedHand.map((card: Card, index: number) => {
           const isSelected = selectedSet.has(card.id);
@@ -118,15 +143,18 @@ export const HandBar: React.FC = () => {
               layout
               data-card-index={index}
               onPointerDown={(e) => handlePointerDown(index, e)}
-              initial={{ opacity: 0, y: 24, scale: 0.9 }}
+              initial={{ opacity: 0, y: 20, scale: 0.92 }}
               animate={{
                 opacity: 1,
-                y: isSelected ? -22 : isDragPreview ? -12 : 0,
+                y: isSelected ? liftSelected : isDragPreview ? liftPreview : 0,
                 scale: 1,
               }}
               transition={{ type: 'spring', stiffness: 420, damping: 30 }}
-              style={{ zIndex: index + 1 }}
-              className={`${overlapClass} cursor-pointer`}
+              style={{
+                zIndex: index + 1,
+                marginLeft: index === 0 ? 0 : -overlapPx,
+              }}
+              className="cursor-pointer"
             >
               <PlayingCard
                 card={card}

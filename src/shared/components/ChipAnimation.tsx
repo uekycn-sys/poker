@@ -1,33 +1,156 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChipDeltaEvent } from '../store/playerStore';
 
-export function ChipTokenSvg({ className = 'w-5 h-5' }: { className?: string }) {
+export type ChipTone = 'gold' | 'crimson' | 'emerald' | 'sapphire' | 'obsidian';
+
+const CHIP_PALETTE: Record<
+  ChipTone,
+  { outer: string; rim: string; mid: string; core: string; dash: string; star: string }
+> = {
+  gold: {
+    outer: '#ca8a04',
+    rim: '#fef08a',
+    mid: '#eab308',
+    core: '#92400e',
+    dash: '#fef9c3',
+    star: '#fffbeb',
+  },
+  crimson: {
+    outer: '#be123c',
+    rim: '#fecdd3',
+    mid: '#f43f5e',
+    core: '#881337',
+    dash: '#fff1f2',
+    star: '#ffe4e6',
+  },
+  emerald: {
+    outer: '#047857',
+    rim: '#a7f3d0',
+    mid: '#10b981',
+    core: '#064e3b',
+    dash: '#ecfdf5',
+    star: '#d1fae5',
+  },
+  sapphire: {
+    outer: '#0369a1',
+    rim: '#bae6fd',
+    mid: '#0ea5e9',
+    core: '#0c4a6e',
+    dash: '#f0f9ff',
+    star: '#e0f2fe',
+  },
+  obsidian: {
+    outer: '#334155',
+    rim: '#cbd5e1',
+    mid: '#475569',
+    core: '#0f172a',
+    dash: '#f8fafc',
+    star: '#fde047',
+  },
+};
+
+export function ChipTokenSvg({
+  className = 'w-5 h-5',
+  tone = 'gold',
+}: {
+  className?: string;
+  tone?: ChipTone;
+}) {
+  const uid = useId().replace(/:/g, '');
+  const p = CHIP_PALETTE[tone];
+
   return (
-    <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
+    <svg viewBox="0 0 36 36" className={className} aria-hidden="true">
       <defs>
-        <radialGradient id="goldChipGrad" cx="35%" cy="30%" r="75%">
-          <stop offset="0%" stopColor="#fef08a" />
-          <stop offset="55%" stopColor="#eab308" />
-          <stop offset="100%" stopColor="#a16207" />
+        <radialGradient id={`chipGrad-${uid}`} cx="35%" cy="28%" r="75%">
+          <stop offset="0%" stopColor={p.rim} />
+          <stop offset="52%" stopColor={p.mid} />
+          <stop offset="100%" stopColor={p.outer} />
         </radialGradient>
       </defs>
-      <circle cx="16" cy="16" r="14" fill="url(#goldChipGrad)" stroke="#fde047" strokeWidth="1.5" />
+      {/* Outer Casino Clay Disc */}
+      <circle cx="18" cy="18" r="15.5" fill={`url(#chipGrad-${uid})`} stroke={p.rim} strokeWidth="1.3" />
+      {/* 6 Inlaid Edge Stripes */}
       <circle
-        cx="16"
-        cy="16"
-        r="10.2"
+        cx="18"
+        cy="18"
+        r="14"
         fill="none"
-        stroke="#451a03"
-        strokeOpacity="0.45"
-        strokeWidth="1.6"
-        strokeDasharray="3 2.5"
+        stroke={p.dash}
+        strokeOpacity="0.88"
+        strokeWidth="2.4"
+        strokeDasharray="3.4 4.4"
       />
-      <circle cx="16" cy="16" r="7" fill="#78350f" fillOpacity="0.35" />
-      <path d="M16 11 L19.5 16 L16 21 L12.5 16 Z" fill="#fef9c3" />
+      {/* Recessed Inner Ring */}
+      <circle cx="18" cy="18" r="10.4" fill={p.core} fillOpacity="0.72" stroke={p.rim} strokeOpacity="0.65" strokeWidth="1" />
+      {/* Inner Bevel & Diamond Crest */}
+      <circle cx="18" cy="18" r="7.5" fill="none" stroke={p.rim} strokeOpacity="0.35" strokeWidth="0.8" />
+      <path d="M18 12.2 L22 18 L18 23.8 L14 18 Z" fill={p.star} />
     </svg>
   );
 }
+
+interface ChipStackProps {
+  amount: number;
+  compact?: boolean;
+  className?: string;
+}
+
+function getChipLayers(amount: number): ChipTone[] {
+  if (amount >= 5000) return ['obsidian', 'gold', 'crimson', 'gold'];
+  if (amount >= 1000) return ['crimson', 'gold', 'sapphire'];
+  if (amount >= 200) return ['sapphire', 'emerald', 'gold'];
+  return ['emerald', 'gold'];
+}
+
+export const ChipStack: React.FC<ChipStackProps> = ({
+  amount,
+  compact = false,
+  className = '',
+}) => {
+  if (amount <= 0) return null;
+  const layers = getChipLayers(amount);
+
+  return (
+    <div
+      className={`inline-flex items-center gap-1.5 rounded-full border border-amber-300/45 bg-black/75 ${
+        compact ? 'px-1.5 py-0.5' : 'px-2.5 py-1'
+      } shadow-[0_6px_14px_rgba(0,0,0,0.55)] backdrop-blur-sm ${className}`}
+    >
+      <div
+        className="relative shrink-0"
+        style={{
+          width: compact ? 16 : 20,
+          height: compact ? 16 + (layers.length - 1) * 2.5 : 20 + (layers.length - 1) * 3,
+        }}
+      >
+        {layers.map((tone, idx) => (
+          <div
+            key={`${tone}-${idx}`}
+            className="absolute inset-x-0"
+            style={{
+              bottom: idx * (compact ? 2.5 : 3),
+              zIndex: idx + 1,
+            }}
+          >
+            <ChipTokenSvg
+              tone={tone}
+              className={`${compact ? 'h-4 w-4' : 'h-5 w-5'} drop-shadow-[0_2px_2px_rgba(0,0,0,0.65)]`}
+            />
+          </div>
+        ))}
+      </div>
+      <span
+        className={`font-mono font-black tracking-tight text-amber-200 ${
+          compact ? 'text-[10px]' : 'text-xs'
+        }`}
+      >
+        {amount.toLocaleString()}
+      </span>
+    </div>
+  );
+};
 
 interface ChipBalancePillProps {
   chips: number;
@@ -58,9 +181,9 @@ export const ChipBalancePill: React.FC<ChipBalancePillProps> = ({
 
   return (
     <div
-      className={`relative inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-black/45 ${
+      className={`relative inline-flex items-center gap-1.5 rounded-full border border-amber-400/45 bg-black/55 ${
         compact ? 'px-2.5 py-1 text-xs' : 'px-3.5 py-1.5 text-sm'
-      } shadow-inner backdrop-blur-sm ${className}`}
+      } shadow-[inset_0_1px_0_rgba(253,230,138,0.18)] backdrop-blur-sm ${className}`}
     >
       <motion.div
         key={chips}

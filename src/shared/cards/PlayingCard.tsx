@@ -18,10 +18,10 @@ export interface PlayingCardProps {
 }
 
 const SIZE_CLASSES: Record<NonNullable<PlayingCardProps['size']>, string> = {
-  xs: 'w-9 h-13 rounded-md',
-  sm: 'w-12 h-17 rounded-lg',
-  md: 'w-16 h-23 rounded-lg',
-  lg: 'w-[76px] h-[108px] md:w-[86px] md:h-[122px] rounded-xl',
+  xs: 'w-[var(--card-xs-w)] h-[var(--card-xs-h)] rounded-[6px]',
+  sm: 'w-[var(--card-sm-w)] h-[var(--card-sm-h)] rounded-lg',
+  md: 'w-[var(--card-md-w)] h-[var(--card-md-h)] rounded-[10px]',
+  lg: 'w-[var(--card-lg-w)] h-[var(--card-lg-h)] rounded-xl',
 };
 
 const BADGE_TONE_CLASSES: Record<NonNullable<CardCornerBadge['tone']>, string> = {
@@ -68,7 +68,7 @@ function SuitIcon({
     case 'spades':
       return (
         <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
-          <path d="M12 2C9 6.5 4 10.2 4 14.3c0 2.5 2 4.4 4.4 4.4 1.3 0 2.4-.6 3.1-1.5-.2 1.8-.9 3.3-2.2 4.3h5.4c-1.3-1-2-2.5-2.2-4.3.7.9 1.8 1.5 3.1 1.5 2.4 0 4.4-1.9 4.4-4.4C20 10.2 15 6.5 12 2z" />
+          <path d="M12 1.8C8.8 6.4 3.8 10.2 3.8 14.3c0 2.6 2 4.5 4.5 4.5 1.3 0 2.4-.6 3.1-1.5-.2 1.8-.9 3.4-2.3 4.5h5.8c-1.4-1.1-2.1-2.7-2.3-4.5.7.9 1.8 1.5 3.1 1.5 2.5 0 4.5-1.9 4.5-4.5C20.2 10.2 15.2 6.4 12 1.8z" />
         </svg>
       );
     case 'hearts':
@@ -80,61 +80,215 @@ function SuitIcon({
     case 'clubs':
       return (
         <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
-          <path d="M12 2.5a4.2 4.2 0 0 0-4.2 4.2c0 1.4.7 2.7 1.8 3.4a4.2 4.2 0 0 0-5.6 4c0 2.3 1.9 4.2 4.2 4.2 1.4 0 2.6-.7 3.3-1.7-.2 1.8-.9 3.4-2.1 4.4h5.2c-1.2-1-1.9-2.6-2.1-4.4.7 1 1.9 1.7 3.3 1.7 2.3 0 4.2-1.9 4.2-4.2a4.2 4.2 0 0 0-5.6-4c1.1-.7 1.8-2 1.8-3.4A4.2 4.2 0 0 0 12 2.5z" />
+          <path d="M12 2.4a4.2 4.2 0 0 0-4.2 4.2c0 1.4.7 2.7 1.8 3.4a4.2 4.2 0 0 0-5.6 4c0 2.3 1.9 4.2 4.2 4.2 1.4 0 2.6-.7 3.3-1.7-.2 1.8-.9 3.4-2.1 4.5h5.2c-1.2-1.1-1.9-2.7-2.1-4.5.7 1 1.9 1.7 3.3 1.7 2.3 0 4.2-1.9 4.2-4.2a4.2 4.2 0 0 0-5.6-4c1.1-.7 1.8-2 1.8-3.4A4.2 4.2 0 0 0 12 2.4z" />
         </svg>
       );
     case 'diamonds':
       return (
         <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
-          <path d="M12 2L20.5 12 12 22 3.5 12 12 2z" />
+          <path d="M12 1.8L20.8 12 12 22.2 3.2 12 12 1.8z" />
         </svg>
       );
   }
 }
 
-function FaceCrownArt({
+function RoyalCourtArtwork({
   rank,
+  suit,
   isRed,
   gradId,
+  size,
 }: {
   rank: number;
+  suit: CardSuit;
   isRed: boolean;
   gradId: string;
+  size: NonNullable<PlayingCardProps['size']>;
 }) {
-  const accent = isRed ? '#b91c1c' : '#1e293b';
+  const accent = isRed ? '#be123c' : '#0f172a';
+  const secondary = isRed ? '#fb7185' : '#334155';
   const gold = '#d4af37';
 
+  // Jokers: Rich Royal Jester Crown with Bells & Starburst
   if (rank === 16 || rank === 17) {
     const isBig = rank === 17;
     return (
-      <svg viewBox="0 0 64 64" className="w-8 h-8 md:w-10 md:h-10" aria-hidden="true">
-        <defs>
-          <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor={isBig ? '#ef4444' : '#334155'} />
-            <stop offset="100%" stopColor={isBig ? '#f59e0b' : '#64748b'} />
-          </linearGradient>
-        </defs>
+      <div className="flex flex-col items-center justify-center">
+        <svg
+          viewBox="0 0 72 72"
+          className={size === 'sm' ? 'h-8 w-8' : size === 'md' ? 'h-10 w-10' : 'h-12 w-12 md:h-14 md:w-14'}
+          aria-hidden="true"
+        >
+          <defs>
+            <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor={isBig ? '#ef4444' : '#334155'} />
+              <stop offset="55%" stopColor={isBig ? '#f59e0b' : '#64748b'} />
+              <stop offset="100%" stopColor={isBig ? '#b91c1c' : '#0f172a'} />
+            </linearGradient>
+          </defs>
+          {/* Radiant Halo */}
+          <circle
+            cx="36"
+            cy="36"
+            r="28"
+            fill="none"
+            stroke={isBig ? '#f59e0b' : '#94a3b8'}
+            strokeOpacity="0.32"
+            strokeWidth="1.2"
+            strokeDasharray="3 2"
+          />
+          {/* Jester 3-Horn Crown */}
+          <path
+            d="M14 48 C15 33, 21 23, 14 15 C22 19, 28 28, 30 34 C32 23, 34 15, 36 10 C38 15, 40 23, 42 34 C44 28, 50 19, 58 15 C51 23, 57 33, 58 48 Z"
+            fill={`url(#${gradId})`}
+            stroke={isBig ? '#991b1b' : '#0f172a'}
+            strokeWidth="1.6"
+            strokeLinejoin="round"
+          />
+          {/* Jester Bells */}
+          <circle cx="14" cy="14" r="3.6" fill={gold} stroke="#78350f" strokeWidth="1" />
+          <circle cx="36" cy="9.5" r="4.2" fill={isBig ? '#fde047' : '#cbd5e1'} stroke="#78350f" strokeWidth="1" />
+          <circle cx="58" cy="14" r="3.6" fill={gold} stroke="#78350f" strokeWidth="1" />
+          {/* Crown Band & Diamond */}
+          <rect x="13" y="48" width="46" height="6.5" rx="3" fill={gold} stroke="#92400e" strokeWidth="1" />
+          <path d="M36 44 L40 51.2 L36 58 L32 51.2 Z" fill={isBig ? '#e11d48' : '#1e293b'} stroke="#fef08a" strokeWidth="1" />
+        </svg>
+        {size === 'lg' && (
+          <span
+            className={`mt-0.5 rounded-full border px-1.5 py-0.2 text-[9px] font-black tracking-wider ${
+              isBig
+                ? 'border-rose-400/50 bg-rose-50 text-rose-700'
+                : 'border-slate-400/50 bg-slate-100 text-slate-700'
+            }`}
+          >
+            {isBig ? '大王' : '小王'}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  // Ace of Spades Ornate Centerpiece
+  if ((rank === 1 || rank === 14) && suit === 'spades') {
+    return (
+      <svg
+        viewBox="0 0 72 72"
+        className={size === 'sm' ? 'h-8 w-8' : size === 'md' ? 'h-11 w-11' : 'h-13 w-13 md:h-15 md:w-15'}
+        aria-hidden="true"
+      >
+        <circle cx="36" cy="36" r="24" fill="none" stroke={gold} strokeOpacity="0.45" strokeWidth="1.4" />
+        <circle cx="36" cy="36" r="20" fill="none" stroke="#0f172a" strokeOpacity="0.16" strokeWidth="1" strokeDasharray="2 2" />
         <path
-          d="M12 46 L16 22 L26 32 L32 14 L38 32 L48 22 L52 46 Z"
-          fill={`url(#${gradId})`}
-          stroke={isBig ? '#991b1b' : '#1e293b'}
-          strokeWidth="2"
-          strokeLinejoin="round"
+          d="M36 14 C27 25, 19 32, 19 40 C19 45.5, 23 49.5, 28.5 49.5 C31.5 49.5, 33.8 48, 35 46 C34.4 50.5, 32.8 54, 29.5 56.5 L42.5 56.5 C39.2 54, 37.6 50.5, 37 46 C38.2 48, 40.5 49.5, 43.5 49.5 C49 49.5, 53 45.5, 53 40 C53 32, 45 25, 36 14 Z"
+          fill="#0f172a"
+          stroke={gold}
+          strokeWidth="1.2"
         />
-        <circle cx="16" cy="19" r="3.5" fill={isBig ? '#fbbf24' : '#94a3b8'} />
-        <circle cx="32" cy="11" r="4" fill={isBig ? '#fbbf24' : '#cbd5e1'} />
-        <circle cx="48" cy="19" r="3.5" fill={isBig ? '#fbbf24' : '#94a3b8'} />
-        <rect x="12" y="48" width="40" height="5" rx="2.5" fill={gold} />
+        <path d="M36 27 L39.5 34 L36 41 L32.5 34 Z" fill={gold} fillOpacity="0.85" />
       </svg>
     );
   }
 
+  // Court Cards (J, Q, K) with Ornate Gold-Trimmed Medallion
   return (
-    <svg viewBox="0 0 64 64" className="w-8 h-8 md:w-10 md:h-10 opacity-90" aria-hidden="true">
-      <rect x="14" y="12" width="36" height="40" rx="6" fill="none" stroke={gold} strokeWidth="2" />
-      <path d="M20 38 L24 24 L32 30 L40 24 L44 38 Z" fill={accent} />
-      <circle cx="32" cy="20" r="3" fill={gold} />
-      <text x="32" y="49" textAnchor="middle" fontSize="11" fontWeight="800" fill={accent}>
+    <svg
+      viewBox="0 0 72 88"
+      className={size === 'sm' ? 'h-8 w-7' : size === 'md' ? 'h-12 w-10' : 'h-15 w-12 md:h-17 md:w-14'}
+      aria-hidden="true"
+    >
+      {/* Inner Gold Court Frame */}
+      <rect
+        x="8"
+        y="8"
+        width="56"
+        height="72"
+        rx="6"
+        fill={isRed ? 'rgba(225,29,72,0.05)' : 'rgba(15,23,42,0.05)'}
+        stroke={gold}
+        strokeWidth="1.6"
+      />
+      <rect
+        x="11"
+        y="11"
+        width="50"
+        height="66"
+        rx="4"
+        fill="none"
+        stroke={accent}
+        strokeOpacity="0.22"
+        strokeWidth="0.9"
+      />
+      {/* Corner Flourishes */}
+      <circle cx="13" cy="13" r="1.5" fill={gold} />
+      <circle cx="59" cy="13" r="1.5" fill={gold} />
+      <circle cx="13" cy="75" r="1.5" fill={gold} />
+      <circle cx="59" cy="75" r="1.5" fill={gold} />
+
+      {rank === 13 && (
+        // KING: Imperial Crown & Crossed Scepters
+        <g>
+          <path d="M22 60 L50 28 M50 60 L22 28" stroke={gold} strokeWidth="2.2" strokeLinecap="round" opacity="0.65" />
+          <path
+            d="M19 46 L23 26 L31 35 L36 20 L41 35 L49 26 L53 46 Z"
+            fill={accent}
+            stroke={gold}
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+          />
+          <circle cx="36" cy="18" r="2.8" fill={gold} />
+          <circle cx="23" cy="24" r="2.2" fill={gold} />
+          <circle cx="49" cy="24" r="2.2" fill={gold} />
+          <rect x="19" y="47" width="34" height="5" rx="2" fill={gold} />
+          <circle cx="36" cy="49.5" r="2" fill={secondary} />
+        </g>
+      )}
+
+      {rank === 12 && (
+        // QUEEN: Royal Tiara & Floral Crest
+        <g>
+          <path
+            d="M21 47 C22 36, 26 27, 36 21 C46 27, 50 36, 51 47 Z"
+            fill="none"
+            stroke={gold}
+            strokeWidth="1.6"
+          />
+          <path
+            d="M20 46 L25 30 L32 37 L36 24 L40 37 L47 30 L52 46 Z"
+            fill={accent}
+            stroke={gold}
+            strokeWidth="1.4"
+            strokeLinejoin="round"
+          />
+          <path d="M36 33 L40 39 L36 45 L32 39 Z" fill="#fef08a" />
+          <circle cx="36" cy="22" r="2.6" fill={secondary} stroke={gold} strokeWidth="1" />
+          <rect x="20" y="47" width="32" height="4.5" rx="2.2" fill={gold} />
+        </g>
+      )}
+
+      {rank === 11 && (
+        // JACK: Knight Shield & Plumed Crest
+        <g>
+          <path
+            d="M24 23 L48 23 L48 41 C48 51, 36 57, 36 57 C36 57, 24 51, 24 41 Z"
+            fill={accent}
+            stroke={gold}
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+          />
+          <path d="M36 25 L36 54 M26 37 L46 37" stroke={gold} strokeWidth="1.6" />
+          <circle cx="36" cy="37" r="4" fill={secondary} stroke="#fef08a" strokeWidth="1.1" />
+        </g>
+      )}
+
+      <text
+        x="36"
+        y="69"
+        textAnchor="middle"
+        fontSize="12"
+        fontWeight="900"
+        fill={accent}
+        letterSpacing="1"
+      >
         {getCornerRankLabel(rank)}
       </text>
     </svg>
@@ -167,50 +321,80 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
   if (faceDown || !card) {
     const isAltDeck = (resolvedDeck ?? 1) % 2 === 0;
     const backGradCls = isAltDeck
-      ? 'from-rose-900 via-rose-950 to-slate-950'
-      : 'from-emerald-800 via-emerald-900 to-emerald-950';
+      ? 'from-[#7f1d1d] via-[#4c0519] to-[#1f0610]'
+      : 'from-[#065f46] via-[#064e3b] to-[#022c22]';
     const centerFill = isAltDeck ? '#4c0519' : '#064e3b';
 
     return (
       <div
-        className={`${sizeCls} relative select-none overflow-hidden border border-amber-300/60 bg-gradient-to-br ${backGradCls} shadow-[0_6px_14px_rgba(0,0,0,0.45)] ${className}`}
+        className={`${sizeCls} relative select-none overflow-hidden border border-amber-300/75 bg-gradient-to-br ${backGradCls} shadow-[0_2px_0_rgba(120,85,20,0.7),0_7px_16px_rgba(0,0,0,0.52)] ${className}`}
       >
         <svg viewBox="0 0 80 112" className="h-full w-full" preserveAspectRatio="none" aria-hidden="true">
           <defs>
-            <pattern id={`cardBack-${uid}`} width="12" height="12" patternUnits="userSpaceOnUse">
+            <pattern id={`cardBack-${uid}`} width="10" height="10" patternUnits="userSpaceOnUse">
               <path
-                d="M6 0 L12 6 L6 12 L0 6 Z"
+                d="M5 0 L10 5 L5 10 L0 5 Z"
                 fill="none"
-                stroke="#d4af37"
-                strokeOpacity="0.32"
-                strokeWidth="0.9"
+                stroke="#f5d061"
+                strokeOpacity="0.28"
+                strokeWidth="0.8"
               />
+              <circle cx="5" cy="5" r="0.9" fill="#f5d061" fillOpacity="0.25" />
             </pattern>
+            <linearGradient id={`cardBackGloss-${uid}`} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.16" />
+              <stop offset="45%" stopColor="#ffffff" stopOpacity="0.02" />
+              <stop offset="100%" stopColor="#000000" stopOpacity="0.18" />
+            </linearGradient>
           </defs>
           <rect
-            x="4"
-            y="4"
-            width="72"
-            height="104"
+            x="3.5"
+            y="3.5"
+            width="73"
+            height="105"
             rx="5"
             fill={`url(#cardBack-${uid})`}
-            stroke="#d4af37"
-            strokeOpacity="0.55"
+            stroke="#e8c35a"
+            strokeOpacity="0.65"
             strokeWidth="1.2"
+          />
+          <rect
+            x="6.5"
+            y="6.5"
+            width="67"
+            height="99"
+            rx="3.5"
+            fill="none"
+            stroke="#fde68a"
+            strokeOpacity="0.32"
+            strokeWidth="0.7"
+          />
+          {/* Central Casino Medallion */}
+          <circle
+            cx="40"
+            cy="56"
+            r="15"
+            fill={centerFill}
+            stroke="#f59e0b"
+            strokeOpacity="0.8"
+            strokeWidth="1.5"
           />
           <circle
             cx="40"
             cy="56"
-            r="14"
-            fill={centerFill}
-            stroke="#f59e0b"
-            strokeOpacity="0.65"
-            strokeWidth="1.4"
+            r="11.5"
+            fill="none"
+            stroke="#fde68a"
+            strokeOpacity="0.45"
+            strokeWidth="0.8"
+            strokeDasharray="2 1.5"
           />
-          <path d="M40 45 L49 56 L40 67 L31 56 Z" fill="#d4af37" fillOpacity="0.7" />
+          <path d="M40 44 L49 56 L40 68 L31 56 Z" fill="#e8c35a" fillOpacity="0.82" />
+          <circle cx="40" cy="56" r="3" fill={centerFill} />
+          <rect x="0" y="0" width="80" height="112" fill={`url(#cardBackGloss-${uid})`} />
         </svg>
         {showDeckMarker && deckMarkerText && (
-          <span className="absolute bottom-1 right-1 rounded bg-black/50 px-1 text-[9px] font-bold text-amber-200">
+          <span className="absolute bottom-1 right-1 rounded bg-black/55 px-1 text-[9px] font-bold text-amber-200">
             {deckMarkerText}
           </span>
         )}
@@ -222,9 +406,12 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
   const isRed = card.suit === 'hearts' || card.suit === 'diamonds' || card.rank === 17;
   const colorCls = isRed ? 'text-rose-600' : 'text-slate-900';
   const label = getCornerRankLabel(card.rank);
-  const isFaceOrJoker = card.rank >= 11 && card.rank !== 14 && card.rank !== 15 ? true : card.rank === 14 || isJoker ? isJoker || card.rank === 14 && false : false;
-  const showFaceArt = isJoker || card.rank === 11 || card.rank === 12 || card.rank === 13;
-  void isFaceOrJoker;
+  const showRoyalArt =
+    isJoker ||
+    card.rank === 11 ||
+    card.rank === 12 ||
+    card.rank === 13 ||
+    ((card.rank === 1 || card.rank === 14) && card.suit === 'spades');
 
   const wildActive = isWild ?? Boolean(card.isWild);
   const resolvedWildLabel = wildLabel ?? card.wildLabel ?? '百搭';
@@ -239,36 +426,39 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
           : null;
 
   const borderGlow = selected
-    ? 'ring-2 ring-amber-400 border-amber-400 shadow-[0_14px_26px_rgba(245,158,11,0.38)]'
+    ? 'ring-2 ring-amber-400 border-amber-400 shadow-[0_3px_0_rgba(180,83,9,0.7),0_16px_28px_rgba(245,158,11,0.42)]'
     : dragPreview
-      ? 'ring-2 ring-sky-400 border-sky-300 shadow-[0_10px_20px_rgba(56,189,248,0.3)]'
+      ? 'ring-2 ring-sky-400 border-sky-300 shadow-[0_2px_0_rgba(14,116,144,0.6),0_12px_22px_rgba(56,189,248,0.35)]'
       : coachRecommended
-        ? 'ring-2 ring-emerald-400 border-emerald-400 shadow-[0_10px_22px_rgba(52,211,153,0.4)]'
+        ? 'ring-2 ring-emerald-400 border-emerald-400 shadow-[0_2px_0_rgba(4,120,87,0.6),0_12px_22px_rgba(52,211,153,0.42)]'
         : wildActive
-          ? 'ring-2 ring-amber-300/90 border-amber-400 shadow-[0_8px_20px_rgba(212,175,55,0.42)]'
-          : 'border-slate-300/90 shadow-[0_6px_16px_rgba(0,0,0,0.42)]';
+          ? 'ring-2 ring-amber-300/90 border-amber-400 shadow-[0_2px_0_rgba(180,83,9,0.65),0_10px_20px_rgba(212,175,55,0.42)]'
+          : 'border-slate-300/95 shadow-[0_2px_0_rgba(148,163,184,0.85),0_7px_16px_rgba(0,0,0,0.46)]';
 
   const cornerTextSize =
     size === 'xs'
       ? 'text-[10px]'
       : size === 'sm'
-        ? 'text-xs'
+        ? 'text-[11px] leading-none'
         : largeFont
-          ? 'text-lg md:text-xl'
-          : 'text-sm md:text-base';
+          ? 'text-base sm:text-lg'
+          : 'text-[13px] sm:text-sm md:text-[15px]';
 
   return (
     <div
       className={`${sizeCls} ${borderGlow} relative select-none overflow-hidden border bg-gradient-to-b ${
         wildActive
           ? 'from-[#fff9e6] via-[#fef3c7] to-[#fde68a]'
-          : 'from-[#fffdf8] via-[#fcfaf2] to-[#f3ede0]'
+          : 'from-[#ffffff] via-[#fdfbf5] to-[#f1eadc]'
       } transition-shadow ${className}`}
     >
+      {/* Top glossy paper highlight */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-white/75 to-transparent" />
+
       {/* Subtle inner frame */}
       <div
-        className={`pointer-events-none absolute inset-[3px] rounded-[inherit] border ${
-          wildActive ? 'border-amber-600/30' : 'border-amber-900/10'
+        className={`pointer-events-none absolute inset-[2.5px] rounded-[inherit] border ${
+          wildActive ? 'border-amber-600/35' : 'border-amber-900/10'
         }`}
       />
 
@@ -291,24 +481,24 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
       )}
 
       {/* Top-left rank & suit */}
-      <div className={`absolute left-1.5 top-1 flex flex-col items-center leading-none ${colorCls}`}>
+      <div className={`absolute left-1 top-1 flex flex-col items-center leading-none ${colorCls}`}>
         {isJoker ? (
-          <div className="flex flex-col items-center text-[8px] md:text-[9px] font-black tracking-tighter leading-[0.95]">
+          <div className="flex flex-col items-center text-[7px] sm:text-[8px] font-black tracking-tighter leading-[0.92]">
             {'JOKER'.split('').map((ch, idx) => (
               <span key={idx}>{ch}</span>
             ))}
           </div>
         ) : (
           <>
-            <span className={`${cornerTextSize} font-extrabold tracking-tighter`}>{label}</span>
+            <span className={`${cornerTextSize} font-black tracking-tighter`}>{label}</span>
             <SuitIcon
               suit={card.suit as Exclude<CardSuit, 'joker'>}
               className={
                 size === 'xs'
-                  ? 'w-2.5 h-2.5 mt-0.5'
+                  ? 'mt-0.5 h-2.5 w-2.5'
                   : largeFont
-                    ? 'w-4 h-4 mt-0.5'
-                    : 'w-3 h-3 md:w-3.5 md:h-3.5 mt-0.5'
+                    ? 'mt-0.5 h-3.5 w-3.5 sm:h-4 sm:w-4'
+                    : 'mt-0.5 h-2.5 w-2.5 sm:h-3 sm:w-3'
               }
             />
           </>
@@ -317,32 +507,31 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
 
       {/* Center artwork */}
       <div className={`flex h-full w-full items-center justify-center ${colorCls}`}>
-        {showFaceArt ? (
+        {showRoyalArt ? (
           size === 'xs' ? (
             <span className="text-[11px] font-black">
               {card.rank === 17 ? '王' : card.rank === 16 ? '鬼' : label}
             </span>
           ) : (
-            <div className="flex flex-col items-center">
-              <FaceCrownArt rank={card.rank} isRed={isRed} gradId={`jokerGrad-${uid}`} />
-              {isJoker && size === 'lg' && (
-                <span className="mt-0.5 text-[10px] font-bold tracking-wider">
-                  {card.rank === 17 ? '大王' : '小王'}
-                </span>
-              )}
-            </div>
+            <RoyalCourtArtwork
+              rank={card.rank}
+              suit={card.suit}
+              isRed={isRed}
+              gradId={`jokerGrad-${uid}`}
+              size={size}
+            />
           )
         ) : (
           <SuitIcon
             suit={card.suit as Exclude<CardSuit, 'joker'>}
             className={
               size === 'xs'
-                ? 'w-3.5 h-3.5'
+                ? 'h-3.5 w-3.5'
                 : size === 'sm'
-                  ? 'w-5 h-5'
+                  ? 'h-4 w-4 sm:h-5 sm:w-5'
                   : largeFont
-                    ? 'w-8 h-8 md:w-9 md:h-9'
-                    : 'w-6 h-6 md:w-8 md:h-8'
+                    ? 'h-7 w-7 sm:h-8 sm:w-8'
+                    : 'h-5 w-5 sm:h-7 sm:w-7'
             }
           />
         )}
@@ -351,12 +540,12 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
       {/* Bottom-right mirrored index on large cards */}
       {size === 'lg' && !isJoker && (
         <div
-          className={`absolute bottom-1 right-1.5 flex rotate-180 flex-col items-center leading-none opacity-80 ${colorCls}`}
+          className={`absolute bottom-1 right-1 flex rotate-180 flex-col items-center leading-none opacity-85 ${colorCls}`}
         >
-          <span className={`${largeFont ? 'text-base' : 'text-xs'} font-extrabold tracking-tighter`}>
+          <span className={`${largeFont ? 'text-sm sm:text-base' : 'text-[11px] sm:text-xs'} font-black tracking-tighter`}>
             {label}
           </span>
-          <SuitIcon suit={card.suit as Exclude<CardSuit, 'joker'>} className="mt-0.5 w-3 h-3" />
+          <SuitIcon suit={card.suit as Exclude<CardSuit, 'joker'>} className="mt-0.5 h-2.5 w-2.5 sm:h-3 sm:w-3" />
         </div>
       )}
     </div>
