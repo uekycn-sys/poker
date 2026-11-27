@@ -128,8 +128,11 @@ body,
   position: fixed;
   top: 0;
   left: 100vw;
-  width: 100dvh;
+  left: var(--stage-h, 100vw);
+  width: 100vh;
+  width: var(--stage-w, 100dvh);
   height: 100vw;
+  height: var(--stage-h, 100vw);
   transform: rotate(90deg);
   transform-origin: top left;
   overflow: hidden;

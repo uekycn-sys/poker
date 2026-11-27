@@ -62,7 +62,7 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
 
   return (
     <div
-      className={`relative flex min-w-0 max-w-full flex-col ${align === 'left' ? 'items-start' : 'items-end'}`}
+      className={`relative flex min-w-0 max-w-[47%] flex-col ${align === 'left' ? 'items-start' : 'items-end'}`}
     >
       <div
         className={`relative flex min-w-0 max-w-full items-center gap-2 short-h:gap-1.5 rounded-2xl border px-2 py-1.5 sm:px-3 sm:py-2 short-h:px-2 short-h:py-1 backdrop-blur-md transition-all ${cardTone} ${
@@ -86,7 +86,7 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
         </div>
 
         {/* Name + Identity + Inline Thinking Indicator */}
-        <div className="min-w-0 max-w-[96px] sm:max-w-[130px]">
+        <div className="min-w-0 max-w-[84px] sm:max-w-[130px]">
           <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : ''}`}>
             <span className="truncate text-xs sm:text-sm short-h:text-[11px] font-black text-amber-50">
               {name}

@@ -38,7 +38,10 @@ export function getStageViewport(): StageViewport {
 
 export function syncStageViewportAttributes(vp: StageViewport): void {
   if (typeof document === 'undefined') return;
-  const { dataset } = document.documentElement;
+  const { dataset, style } = document.documentElement;
+  style.setProperty('--stage-w', `${vp.width}px`);
+  style.setProperty('--stage-h', `${vp.height}px`);
+
   if (vp.isForcedLandscape) dataset.forcedLandscape = 'true';
   else delete dataset.forcedLandscape;
 

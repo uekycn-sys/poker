@@ -352,64 +352,64 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
         </div>
       )}
 
-      {/* Main Arena: Win-Rate Balance Bar + Opponents + Played Cards */}
-      <div className="relative z-10 flex min-h-0 flex-1 items-stretch px-2.5 sm:px-5">
-        {/* Left Edge Slim Win-Rate Meter with Landlord & Farmer Emblems */}
-        <aside className="z-10 mr-1 sm:mr-2.5 flex w-9 sm:w-12 shrink-0 flex-col items-center justify-center py-1 sm:py-2">
-          <div className="mb-1 flex flex-col items-center text-[9px] sm:text-xs font-black text-amber-300 whitespace-nowrap">
-            <RoleEmblemIcon role="landlord" className="h-3.5 w-3.5 sm:h-4 sm:w-4 mb-0.5" />
-            <span>地主 {Math.round(liveWinRate.landlordWinRate)}%</span>
-          </div>
-          <div className="relative h-16 sm:h-32 md:h-44 w-2.5 sm:w-3 overflow-hidden rounded-full border border-amber-300/45 bg-emerald-950 shadow-inner">
-            <motion.div
-              className="absolute inset-x-0 top-0 bg-gradient-to-b from-rose-400 via-amber-400 to-amber-600"
-              animate={{ height: `${liveWinRate.landlordWinRate}%` }}
-              transition={{ duration: 0.45, ease: 'easeOut' }}
-            />
-          </div>
-          <div className="mt-1 flex flex-col items-center text-[9px] sm:text-xs font-black text-emerald-300 whitespace-nowrap">
-            <span>农民 {Math.round(liveWinRate.farmerWinRate)}%</span>
-            <RoleEmblemIcon role="farmer" className="h-3.5 w-3.5 sm:h-4 sm:w-4 mt-0.5" />
-          </div>
-        </aside>
+      {/* Main Arena: Full-Width Opponents Row + (Win-Rate Bar | Played Cards) */}
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col px-2.5 sm:px-5">
+        {/* Opponents Row (spans full width so 上家 and 下家 stay anchored to opposite corners) */}
+        <div className="flex w-full min-w-0 shrink-0 items-start justify-between gap-2 pt-0.5 sm:pt-1">
+          <PlayerSeat
+            seat={2}
+            name="上家 · 守门大师"
+            align="left"
+            role={getSeatRole(2)}
+            isCurrentTurn={gameState.currentTurn === 2 && gameState.phase !== 'FINISHED'}
+            isThinking={aiThinkingSeat === 2}
+            isMingpai={matchMode === 'puzzle' || gameState.mingpaiSeats.includes(2)}
+            phase={gameState.phase}
+            cards={gameState.hands[2]}
+            bubble={seatBubbles[2]}
+            doubleChoice={gameState.doubleChoices[2]}
+            largeFont={largeCardFont}
+          />
 
-        {/* Center Playing Stage */}
-        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col justify-between overflow-hidden">
-          {/* Opponents Row */}
-          <div className="flex min-w-0 shrink-0 items-start justify-between gap-2 pt-0.5 sm:pt-1">
-            <PlayerSeat
-              seat={2}
-              name="上家 · 守门大师"
-              align="left"
-              role={getSeatRole(2)}
-              isCurrentTurn={gameState.currentTurn === 2 && gameState.phase !== 'FINISHED'}
-              isThinking={aiThinkingSeat === 2}
-              isMingpai={matchMode === 'puzzle' || gameState.mingpaiSeats.includes(2)}
-              phase={gameState.phase}
-              cards={gameState.hands[2]}
-              bubble={seatBubbles[2]}
-              doubleChoice={gameState.doubleChoices[2]}
-              largeFont={largeCardFont}
-            />
+          <PlayerSeat
+            seat={1}
+            name="下家 · 快攻专家"
+            align="right"
+            role={getSeatRole(1)}
+            isCurrentTurn={gameState.currentTurn === 1 && gameState.phase !== 'FINISHED'}
+            isThinking={aiThinkingSeat === 1}
+            isMingpai={matchMode === 'puzzle' || gameState.mingpaiSeats.includes(1)}
+            phase={gameState.phase}
+            cards={gameState.hands[1]}
+            bubble={seatBubbles[1]}
+            doubleChoice={gameState.doubleChoices[1]}
+            largeFont={largeCardFont}
+          />
+        </div>
 
-            <PlayerSeat
-              seat={1}
-              name="下家 · 快攻专家"
-              align="right"
-              role={getSeatRole(1)}
-              isCurrentTurn={gameState.currentTurn === 1 && gameState.phase !== 'FINISHED'}
-              isThinking={aiThinkingSeat === 1}
-              isMingpai={matchMode === 'puzzle' || gameState.mingpaiSeats.includes(1)}
-              phase={gameState.phase}
-              cards={gameState.hands[1]}
-              bubble={seatBubbles[1]}
-              doubleChoice={gameState.doubleChoices[1]}
-              largeFont={largeCardFont}
-            />
-          </div>
+        {/* Middle Stage: Left Edge Win-Rate Meter + Played Cards Felt Stage */}
+        <div className="relative flex min-h-0 flex-1 items-stretch overflow-hidden">
+          {/* Left Edge Slim Win-Rate Meter with Landlord & Farmer Emblems */}
+          <aside className="z-10 mr-1 sm:mr-2.5 flex w-9 sm:w-12 shrink-0 flex-col items-center justify-center py-0.5 sm:py-2">
+            <div className="mb-1 flex flex-col items-center text-[9px] sm:text-xs font-black text-amber-300 whitespace-nowrap">
+              <RoleEmblemIcon role="landlord" className="h-3.5 w-3.5 sm:h-4 sm:w-4 mb-0.5" />
+              <span>地主 {Math.round(liveWinRate.landlordWinRate)}%</span>
+            </div>
+            <div className="relative h-14 sm:h-32 md:h-44 w-2.5 sm:w-3 overflow-hidden rounded-full border border-amber-300/45 bg-emerald-950 shadow-inner">
+              <motion.div
+                className="absolute inset-x-0 top-0 bg-gradient-to-b from-rose-400 via-amber-400 to-amber-600"
+                animate={{ height: `${liveWinRate.landlordWinRate}%` }}
+                transition={{ duration: 0.45, ease: 'easeOut' }}
+              />
+            </div>
+            <div className="mt-1 flex flex-col items-center text-[9px] sm:text-xs font-black text-emerald-300 whitespace-nowrap">
+              <span>农民 {Math.round(liveWinRate.farmerWinRate)}%</span>
+              <RoleEmblemIcon role="farmer" className="h-3.5 w-3.5 sm:h-4 sm:w-4 mt-0.5" />
+            </div>
+          </aside>
 
           {/* Played Cards Felt Stage */}
-          <div className="relative flex min-h-0 flex-1 items-center justify-between gap-2 px-1 sm:px-8 md:px-14">
+          <div className="relative flex min-h-0 min-w-0 flex-1 items-center justify-between gap-2 px-1 sm:px-8 md:px-14">
             {([2, 0, 1] as const).map((seat) => {
               const play = tablePlays[seat];
               const alignClass =
