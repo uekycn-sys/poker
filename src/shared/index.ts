@@ -4,3 +4,4 @@ export * from './effects';
 export * from './store';
 export * from './components';
 export * from './hooks';
+export * from './random';

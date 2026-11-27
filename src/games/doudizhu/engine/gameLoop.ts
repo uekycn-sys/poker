@@ -46,7 +46,7 @@ export function createInitialGameState(baseScore = 100): GameState {
 export function startNewMatch(
   baseScore = 100,
   starterSeat: Seat = 0,
-  rng: () => number = Math.random,
+  rng?: () => number,
   redealCount = 0,
 ): GameState {
   const { hands, bottomCards } = dealCards(undefined, rng);
@@ -117,7 +117,7 @@ export function applyBidAction(
   state: GameState,
   seat: Seat,
   action: BidAction,
-  rng: () => number = Math.random,
+  rng?: () => number,
 ): GameState {
   if (state.phase !== 'BIDDING') {
     throw new Error(`Invalid bid in phase ${state.phase}`);

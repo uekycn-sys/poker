@@ -240,7 +240,7 @@ const legacySeed = readLegacySeed();
 export const usePlayerStore = create<PlayerStoreState>()(
   persist(
     (set, get) => ({
-      nickname: '皇家牌手',
+      nickname: '欢乐牌手',
       avatarId: 'crown',
       chips: legacySeed.chips ?? 10000,
       rankPoints: legacySeed.rankPoints ?? 100,
@@ -259,7 +259,7 @@ export const usePlayerStore = create<PlayerStoreState>()(
       voiceEnabled: legacySeed.voiceEnabled ?? true,
       largeCardFont: legacySeed.largeCardFont ?? true,
 
-      setNickname: (nickname) => set({ nickname: nickname.trim() || '皇家牌手' }),
+      setNickname: (nickname) => set({ nickname: nickname.trim() || '欢乐牌手' }),
 
       setAvatarId: (avatarId) => set({ avatarId }),
 
@@ -373,6 +373,9 @@ export const usePlayerStore = create<PlayerStoreState>()(
       name: STORAGE_KEY,
       onRehydrateStorage: () => (state) => {
         if (state) {
+          if (state.nickname === '皇家牌手') {
+            state.nickname = '欢乐牌手';
+          }
           soundEngine.setEnabled(state.sfxEnabled);
           speechEngine.setEnabled(state.voiceEnabled);
         }

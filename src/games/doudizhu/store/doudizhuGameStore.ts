@@ -32,6 +32,7 @@ import {
 } from '../engine';
 import { soundEngine } from '../../../shared/audio/soundEngine';
 import { FxKind, TableFxEvent } from '../../../shared/effects/TableEffects';
+import { secureRandomInt, secureShuffle } from '../../../shared/random';
 import { usePlayerStore } from '../../../shared/store/playerStore';
 import { doudizhuSpeech } from '../audio/doudizhuSpeech';
 import { SavedMatchRecord, useDoudizhuProfileStore } from './doudizhuProfileStore';
@@ -100,7 +101,7 @@ function generateBlindQuiz(state: GameState): BlindQuizQuestion {
     const alt2 = Math.max(0, Math.min(4, c2 + d2));
     optionSet.add(`${alt1} 张 ${l1}，${alt2} 张 ${l2}`);
   }
-  const options = [...optionSet].sort(() => Math.random() - 0.5);
+  const options = secureShuffle([...optionSet]);
 
   return {
     prompt: `盲记抽测：目前外面还剩几张 ${l1} 和几张 ${l2}？`,
@@ -389,7 +390,7 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
 
       clearBubbleTimers();
       const token = get().sessionToken + 1;
-      const starter = Math.floor(Math.random() * 3) as Seat;
+      const starter = secureRandomInt(3) as Seat;
       const fresh = startNewMatch(baseScore, starter);
 
       soundEngine.playDeal();

@@ -1,3 +1,4 @@
+import { secureShuffle } from '../../../shared/random';
 import { HoldemCard, HoldemRank, HoldemSuit } from './types';
 
 export const SUITS: readonly HoldemSuit[] = ['spades', 'hearts', 'clubs', 'diamonds'] as const;
@@ -84,6 +85,9 @@ export function createRng(seed?: number): () => number {
 
 export function shuffleDeck(cards: readonly HoldemCard[], seed?: number): HoldemCard[] {
   const copy = cards.map((c) => ({ ...c }));
+  if (seed === undefined) {
+    return secureShuffle(copy);
+  }
   const rng = createRng(seed);
   for (let i = copy.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));

@@ -42,8 +42,13 @@ export function syncStageViewportAttributes(vp: StageViewport): void {
   if (vp.isForcedLandscape) dataset.forcedLandscape = 'true';
   else delete dataset.forcedLandscape;
 
-  if (vp.isShortLandscape) dataset.shortLandscape = 'true';
-  else delete dataset.shortLandscape;
+  if (vp.isShortLandscape) {
+    dataset.shortLandscape = 'true';
+    delete dataset.tallLandscape;
+  } else {
+    delete dataset.shortLandscape;
+    dataset.tallLandscape = 'true';
+  }
 
   if (vp.isUltraShort) dataset.ultraShort = 'true';
   else delete dataset.ultraShort;

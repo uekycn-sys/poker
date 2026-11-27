@@ -48,6 +48,30 @@ describe('deck and sorting', () => {
     expect(new Set(allIds).size).toBe(54);
   });
 
+  it('produces distinct CSPRNG deals and distributes cards uniformly across seats', () => {
+    const deck = createDeck();
+    const dealA = shuffleDeck(deck).map((c) => c.id).join(',');
+    const dealB = shuffleDeck(deck).map((c) => c.id).join(',');
+    expect(dealA).not.toBe(dealB);
+
+    const bigJokerSeatCounts = [0, 0, 0];
+    for (let i = 0; i < 300; i++) {
+      const { hands, bottomCards } = dealCards(deck);
+      const allIds = [...hands[0], ...hands[1], ...hands[2], ...bottomCards].map((c) => c.id);
+      expect(new Set(allIds).size).toBe(54);
+      for (let s = 0; s < 3; s++) {
+        if (hands[s].some((c) => c.rank === Rank.BIG_JOKER)) {
+          bigJokerSeatCounts[s] += 1;
+        }
+      }
+    }
+
+    for (const count of bigJokerSeatCounts) {
+      expect(count).toBeGreaterThanOrEqual(50);
+      expect(count).toBeLessThanOrEqual(150);
+    }
+  });
+
   it('sorts cards by rank descending and by pattern groups', () => {
     const cards = parseCards('3 A BJ 3 K SJ 3 3 7 7 5');
     const byRank = sortCardsByRank(cards);

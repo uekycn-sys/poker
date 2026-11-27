@@ -98,7 +98,14 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
   const difficulty = useDoudizhuProfileStore((s) => s.difficulty);
   const sortMode = useDoudizhuProfileStore((s) => s.sortMode);
   const toggleSortMode = useDoudizhuProfileStore((s) => s.toggleSortMode);
-  const { isShortLandscape } = useStageViewport();
+  const { isShortLandscape, isUltraShort } = useStageViewport();
+
+  const waitTurnLabel =
+    gameState.currentTurn === 1
+      ? '轮到下家操作…'
+      : gameState.currentTurn === 2
+        ? '轮到上家操作…'
+        : null;
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -143,8 +150,8 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
       }`}
     >
       {/* Mahogany Perimeter Bezel & Subtle Gold Felt Inlay */}
-      <div className="pointer-events-none fixed inset-0 border-[6px] border-[#26140b] sm:border-[10px]" />
-      <div className="pointer-events-none fixed inset-[6px] sm:inset-[10px] rounded-2xl border border-amber-300/20" />
+      <div className="pointer-events-none absolute inset-0 border-[6px] border-[#26140b] sm:border-[10px] short-h:border-[4px]" />
+      <div className="pointer-events-none absolute inset-[6px] sm:inset-[10px] short-h:inset-[4px] rounded-2xl border border-amber-300/20" />
 
       {/* Center Embossed Table Watermark */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -161,39 +168,39 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
       <TableEffects fx={activeFx} onComplete={clearActiveFx} />
 
       {/* Top Floating HUD Row (Elder-Friendly: Every Key Action Has Icon + Clear Label) */}
-      <header className="short-h-compact relative z-20 flex shrink-0 items-center justify-between gap-1.5 px-2 pt-1.5 sm:px-5 sm:pt-2.5">
+      <header className="short-h-compact relative z-20 flex shrink-0 items-center justify-between gap-1 sm:gap-1.5 px-2 pt-1.5 sm:px-5 sm:pt-2.5">
         {/* Left Navigation & Audio Controls */}
         <div className="flex shrink-0 items-center gap-1 whitespace-nowrap">
           <button
             type="button"
             onClick={onExitToLobby}
             title="返回大厅"
-            className="hud-glass flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-black text-amber-200 transition hover:border-amber-300/60 cursor-pointer"
+            className="hud-glass flex items-center gap-1 rounded-xl px-2.5 py-1.5 short-h:px-2 short-h:py-1 text-xs short-h:text-[11px] font-black text-amber-200 transition hover:border-amber-300/60 cursor-pointer"
           >
-            <Home className="h-4 w-4 text-amber-300" />
+            <Home className="h-4 w-4 short-h:h-3.5 short-h:w-3.5 text-amber-300" />
             <span>大厅</span>
           </button>
           <button
             type="button"
             onClick={matchMode === 'puzzle' ? openPuzzlesScreen : returnToHub}
             title={matchMode === 'puzzle' ? '残局列表' : '斗地主专区'}
-            className="hud-glass flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-black text-amber-100 transition hover:border-amber-300/60 cursor-pointer"
+            className="hud-glass flex items-center gap-1 rounded-xl px-2.5 py-1.5 short-h:px-2 short-h:py-1 text-xs short-h:text-[11px] font-black text-amber-100 transition hover:border-amber-300/60 cursor-pointer"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4 short-h:h-3.5 short-h:w-3.5" />
             <span>{matchMode === 'puzzle' ? '残局' : '专区'}</span>
           </button>
           <button
             type="button"
             onClick={toggleSfx}
             title="音效开关"
-            className={`hud-glass flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-bold transition cursor-pointer ${
+            className={`hud-glass flex items-center gap-1 rounded-xl px-2.5 py-1.5 short-h:px-2 short-h:py-1 text-xs short-h:text-[11px] font-bold transition cursor-pointer ${
               sfxEnabled ? 'text-emerald-200' : 'text-slate-400'
             }`}
           >
             {sfxEnabled ? (
-              <Volume2 className="h-4 w-4 text-emerald-300" />
+              <Volume2 className="h-4 w-4 short-h:h-3.5 short-h:w-3.5 text-emerald-300" />
             ) : (
-              <VolumeX className="h-4 w-4 text-slate-400" />
+              <VolumeX className="h-4 w-4 short-h:h-3.5 short-h:w-3.5 text-slate-400" />
             )}
             <span className="hidden sm:inline forced-l:inline">音效</span>
           </button>
@@ -201,14 +208,14 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
             type="button"
             onClick={toggleVoice}
             title="中文语音播报"
-            className={`hud-glass flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-bold transition cursor-pointer ${
+            className={`hud-glass flex items-center gap-1 rounded-xl px-2.5 py-1.5 short-h:px-2 short-h:py-1 text-xs short-h:text-[11px] font-bold transition cursor-pointer ${
               voiceEnabled ? 'text-emerald-200' : 'text-slate-400'
             }`}
           >
             {voiceEnabled ? (
-              <Megaphone className="h-4 w-4 text-emerald-300" />
+              <Megaphone className="h-4 w-4 short-h:h-3.5 short-h:w-3.5 text-emerald-300" />
             ) : (
-              <MicOff className="h-4 w-4 text-slate-400" />
+              <MicOff className="h-4 w-4 short-h:h-3.5 short-h:w-3.5 text-slate-400" />
             )}
             <span className="hidden sm:inline forced-l:inline">语音</span>
           </button>
@@ -222,7 +229,7 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
         </div>
 
         {/* Center Recessed Bottom-Cards Tray + Multiplier + Docked CardCounter */}
-        <div className="flex items-center tall-h:flex-col gap-1">
+        <div className="flex min-w-0 items-center tall-h:flex-col gap-1">
           {matchMode === 'puzzle' && activePuzzle ? (
             <div className="hud-glass flex items-center gap-2 rounded-2xl px-3 py-1">
               <span className="whitespace-nowrap text-xs font-black text-amber-200">
@@ -248,7 +255,7 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
             </div>
           ) : (
             <>
-              <div className="hud-glass flex shrink-0 items-center gap-1.5 sm:gap-2.5 rounded-2xl px-2.5 py-1 shadow-xl whitespace-nowrap">
+              <div className="hud-glass flex shrink-0 items-center gap-1.5 sm:gap-2.5 rounded-2xl px-2.5 py-1 short-h:px-2 short-h:py-0.5 shadow-xl whitespace-nowrap">
                 <div className="flex items-center gap-1">
                   <span className="short-h-hide text-[11px] font-bold text-amber-200/85">底牌</span>
                   {gameState.bottomCards.map((c) => (
@@ -268,12 +275,12 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
                   key={displayMultiplier}
                   initial={{ scale: 1.18 }}
                   animate={{ scale: 1 }}
-                  className="flex items-center gap-1 text-xs"
+                  className="flex items-center gap-1 text-xs short-h:text-[11px]"
                 >
                   <span className="text-[11px] font-bold text-emerald-200/85">
                     底{gameState.baseScore}
                   </span>
-                  <span className="rounded-lg bg-amber-400/25 px-1.5 py-0.5 font-mono text-xs font-black text-amber-300">
+                  <span className="rounded-lg bg-amber-400/25 px-1.5 py-0.5 font-mono text-xs short-h:text-[11px] font-black text-amber-300">
                     ×{displayMultiplier}
                   </span>
                 </motion.div>
@@ -291,13 +298,13 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
             type="button"
             onClick={toggleLargeCardFont}
             title="适老大字清晰模式"
-            className={`flex shrink-0 items-center gap-1 whitespace-nowrap rounded-xl px-2.5 py-1.5 text-xs font-black transition cursor-pointer ${
+            className={`flex shrink-0 items-center gap-1 whitespace-nowrap rounded-xl px-2.5 py-1.5 short-h:px-2 short-h:py-1 text-xs short-h:text-[11px] font-black transition cursor-pointer ${
               largeCardFont
                 ? 'border border-amber-300 bg-amber-400/25 text-amber-200 shadow'
                 : 'hud-glass text-emerald-100/80'
             }`}
           >
-            <ZoomIn className="h-4 w-4 text-amber-300" />
+            <ZoomIn className="h-4 w-4 short-h:h-3.5 short-h:w-3.5 text-amber-300" />
             <span>大字</span>
           </button>
 
@@ -305,13 +312,13 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
             type="button"
             onClick={toggleCoachPanel}
             title="AI 教练出牌分析"
-            className={`flex shrink-0 items-center gap-1 whitespace-nowrap rounded-xl px-2.5 py-1.5 text-xs font-black transition cursor-pointer ${
+            className={`flex shrink-0 items-center gap-1 whitespace-nowrap rounded-xl px-2.5 py-1.5 short-h:px-2 short-h:py-1 text-xs short-h:text-[11px] font-black transition cursor-pointer ${
               coachPanelOpen
                 ? 'game-btn-gold'
                 : 'hud-glass text-amber-200 hover:border-amber-300/60'
             }`}
           >
-            <Brain className="h-4 w-4" />
+            <Brain className="h-4 w-4 short-h:h-3.5 short-h:w-3.5" />
             <span>教练</span>
           </button>
 
@@ -334,30 +341,30 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
       )}
 
       {/* Main Arena: Win-Rate Balance Bar + Opponents + Played Cards + Hero Hand */}
-      <div className="relative z-10 flex min-h-0 flex-1 items-stretch px-2 sm:px-5 pb-1.5">
+      <div className="relative z-10 flex min-h-0 flex-1 items-stretch px-2 sm:px-5 pb-1">
         {/* Left Edge Slim Win-Rate Meter with Landlord & Farmer Emblems */}
-        <aside className="z-10 mr-1.5 sm:mr-3 flex shrink-0 flex-col items-center justify-center py-2">
-          <div className="mb-1 flex flex-col items-center text-[10px] sm:text-xs font-black text-amber-300">
-            <RoleEmblemIcon role="landlord" className="h-4 w-4 mb-0.5" />
+        <aside className="z-10 mr-1 sm:mr-2.5 flex w-9 sm:w-12 shrink-0 flex-col items-center justify-center py-1 sm:py-2">
+          <div className="mb-1 flex flex-col items-center text-[9px] sm:text-xs font-black text-amber-300 whitespace-nowrap">
+            <RoleEmblemIcon role="landlord" className="h-3.5 w-3.5 sm:h-4 sm:w-4 mb-0.5" />
             <span>地主 {Math.round(liveWinRate.landlordWinRate)}%</span>
           </div>
-          <div className="relative h-24 sm:h-40 md:h-52 w-3 overflow-hidden rounded-full border border-amber-300/45 bg-emerald-950 shadow-inner">
+          <div className="relative h-20 sm:h-36 md:h-48 w-2.5 sm:w-3 overflow-hidden rounded-full border border-amber-300/45 bg-emerald-950 shadow-inner">
             <motion.div
               className="absolute inset-x-0 top-0 bg-gradient-to-b from-rose-400 via-amber-400 to-amber-600"
               animate={{ height: `${liveWinRate.landlordWinRate}%` }}
               transition={{ duration: 0.45, ease: 'easeOut' }}
             />
           </div>
-          <div className="mt-1 flex flex-col items-center text-[10px] sm:text-xs font-black text-emerald-300">
+          <div className="mt-1 flex flex-col items-center text-[9px] sm:text-xs font-black text-emerald-300 whitespace-nowrap">
             <span>农民 {Math.round(liveWinRate.farmerWinRate)}%</span>
-            <RoleEmblemIcon role="farmer" className="h-4 w-4 mt-0.5" />
+            <RoleEmblemIcon role="farmer" className="h-3.5 w-3.5 sm:h-4 sm:w-4 mt-0.5" />
           </div>
         </aside>
 
         {/* Center Playing Stage */}
-        <div className="relative flex min-h-0 flex-1 flex-col justify-between">
+        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col justify-between overflow-hidden">
           {/* Opponents Row */}
-          <div className="flex items-start justify-between gap-2 pt-1">
+          <div className="flex min-w-0 shrink-0 items-start justify-between gap-2 pt-0.5 sm:pt-1">
             <PlayerSeat
               seat={2}
               name="上家 · 守门大师"
@@ -390,24 +397,31 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
           </div>
 
           {/* Played Cards Felt Stage */}
-          <div className="relative my-auto flex min-h-[48px] tall-h:min-h-[104px] items-center justify-between px-3 sm:px-10 md:px-16">
+          <div className="relative flex min-h-0 flex-1 items-center justify-between gap-2 px-1 sm:px-8 md:px-14">
             {([2, 0, 1] as const).map((seat) => {
               const play = tablePlays[seat];
               const alignClass =
                 seat === 2
-                  ? 'min-w-[90px] sm:min-w-[140px] justify-start'
+                  ? 'justify-start'
                   : seat === 1
-                    ? 'min-w-[90px] sm:min-w-[140px] justify-end'
+                    ? 'justify-end'
                     : 'justify-center';
               const initialOffset =
                 seat === 2 ? { x: -24, y: 0 } : seat === 1 ? { x: 24, y: 0 } : { x: 0, y: 24 };
               const cardCount = play?.cards.length ?? 0;
-              const overlapCls =
-                cardCount > 5 ? '-ml-6 sm:-ml-7 short-h:-ml-5' : '-ml-5 sm:-ml-6';
-              const cardSize = isShortLandscape && cardCount > 5 ? 'sm' : 'md';
+              const overlapCls = isShortLandscape
+                ? cardCount >= 8
+                  ? '-ml-6'
+                  : cardCount >= 5
+                    ? '-ml-5'
+                    : '-ml-4'
+                : cardCount > 6
+                  ? '-ml-7'
+                  : '-ml-5 sm:-ml-6';
+              const cardSize = isUltraShort || (isShortLandscape && cardCount >= 3) ? 'sm' : 'md';
 
               return (
-                <div key={seat} className={`flex ${alignClass}`}>
+                <div key={seat} className={`flex min-w-0 flex-1 overflow-visible ${alignClass}`}>
                   <AnimatePresence mode="wait">
                     {play && (
                       <motion.div
@@ -502,161 +516,171 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
           </AnimatePresence>
 
           {/* Bottom Hero Action Bar + Hand + Integrated Profile Dock */}
-          <div className="z-20 flex flex-col items-center gap-1">
+          <div className="relative z-20 flex w-full min-w-0 shrink-0 flex-col items-center gap-1 short-h:gap-0.5">
             <AnimatePresence>
               {seatBubbles[0] && (
                 <motion.div
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  className="rounded-xl border border-amber-200 bg-gradient-to-b from-amber-300 to-amber-500 px-3 py-0.5 text-xs sm:text-sm font-black text-emerald-950 shadow-lg"
+                  className="pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 z-30 whitespace-nowrap rounded-xl border border-amber-200 bg-gradient-to-b from-amber-300 to-amber-500 px-3 py-0.5 text-xs sm:text-sm font-black text-emerald-950 shadow-lg"
                 >
                   {seatBubbles[0]}
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Tactile 3D Action Controls (Elder-Friendly Icons + Larger Hit Targets) */}
-            {gameState.phase === 'BIDDING' && isHumanTurn && (
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                <div className="flex min-h-[38px] sm:min-h-[42px] px-3 items-center justify-center gap-1 rounded-full border-2 border-amber-300/80 bg-black/65 font-mono text-sm font-black text-amber-300 shadow-lg">
-                  <Clock className="h-4 w-4 text-amber-400" /> {turnSecondsLeft}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => humanBid('PASS')}
-                  className="game-btn-slate inline-flex min-h-[38px] sm:min-h-[44px] items-center gap-1.5 rounded-xl px-4 sm:px-5 text-sm sm:text-base font-black cursor-pointer"
-                >
-                  <Ban className="h-4 w-4" />
-                  {gameState.firstCallerSeat === null ? '不叫' : '不抢'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => humanBid(gameState.firstCallerSeat === null ? 'CALL' : 'GRAB')}
-                  className="game-btn-gold inline-flex min-h-[38px] sm:min-h-[44px] items-center gap-1.5 rounded-xl px-5 sm:px-6 text-sm sm:text-base font-black cursor-pointer"
-                >
-                  <Crown className="h-4 w-4" />
-                  {gameState.firstCallerSeat === null ? '叫地主' : '抢地主 ×2'}
-                </button>
-                {!gameState.mingpaiSeats.includes(0) && (
+            {/* Fixed-Height Action Controls Row (prevents hand cards from jumping up/down on AI turns) */}
+            <div className="flex h-[34px] tall-h:h-[44px] w-full shrink-0 items-center justify-center">
+              {gameState.phase === 'BIDDING' && isHumanTurn ? (
+                <div className="flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap">
+                  <div className="flex h-[32px] tall-h:h-[42px] px-2.5 sm:px-3 items-center justify-center gap-1 rounded-full border-2 border-amber-300/80 bg-black/65 font-mono text-xs sm:text-sm font-black text-amber-300 shadow-lg">
+                    <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-400" /> {turnSecondsLeft}
+                  </div>
                   <button
                     type="button"
-                    onClick={humanMingpai}
-                    className="game-btn-crimson inline-flex min-h-[38px] sm:min-h-[44px] items-center gap-1.5 rounded-xl px-4 text-sm sm:text-base font-black cursor-pointer"
+                    onClick={() => humanBid('PASS')}
+                    className="game-btn-slate inline-flex h-[32px] tall-h:h-[42px] items-center gap-1 rounded-xl px-3 sm:px-5 text-xs sm:text-base font-black cursor-pointer"
                   >
-                    <Eye className="h-4 w-4" /> 明牌 ×4
+                    <Ban className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    {gameState.firstCallerSeat === null ? '不叫' : '不抢'}
                   </button>
-                )}
-              </div>
-            )}
-
-            {gameState.phase === 'DOUBLING' && gameState.doubleChoices[0] === null && (
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                <div className="flex min-h-[38px] sm:min-h-[42px] px-3 items-center justify-center gap-1 rounded-full border-2 border-amber-300/80 bg-black/65 font-mono text-sm font-black text-amber-300 shadow-lg">
-                  <Clock className="h-4 w-4 text-amber-400" /> {turnSecondsLeft}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => humanDouble(1)}
-                  className="game-btn-slate inline-flex min-h-[38px] sm:min-h-[44px] items-center gap-1.5 rounded-xl px-4 sm:px-5 text-sm sm:text-base font-black cursor-pointer"
-                >
-                  <Ban className="h-4 w-4" /> 不加倍
-                </button>
-                <button
-                  type="button"
-                  onClick={() => humanDouble(2)}
-                  className="game-btn-gold inline-flex min-h-[38px] sm:min-h-[44px] items-center gap-1.5 rounded-xl px-4 sm:px-5 text-sm sm:text-base font-black cursor-pointer"
-                >
-                  <ChevronsUp className="h-4 w-4" /> 加倍 ×2
-                </button>
-                <button
-                  type="button"
-                  onClick={() => humanDouble(4)}
-                  className="game-btn-crimson inline-flex min-h-[38px] sm:min-h-[44px] items-center gap-1.5 rounded-xl px-4 sm:px-5 text-sm sm:text-base font-black cursor-pointer"
-                >
-                  <Sparkles className="h-4 w-4" /> 超级加倍 ×4
-                </button>
-              </div>
-            )}
-
-            {gameState.phase === 'PLAYING' && isHumanTurn && (
-              <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
-                <div
-                  className={`flex min-h-[38px] sm:min-h-[42px] px-2.5 items-center justify-center gap-1 rounded-full border-2 bg-black/70 font-mono text-sm font-black shadow-lg ${
-                    turnSecondsLeft <= 5
-                      ? 'border-rose-400 text-rose-300 animate-pulse'
-                      : 'border-amber-300/80 text-amber-300'
-                  }`}
-                >
-                  <Clock className="h-4 w-4" />
-                  <span>{turnSecondsLeft}</span>
-                  <span className="short-h-hide text-[11px] font-sans text-amber-100">轮到您</span>
-                </div>
-
-                {gameState.lastPlay !== null && (
                   <button
                     type="button"
-                    onClick={humanPass}
-                    className="game-btn-slate inline-flex min-h-[38px] sm:min-h-[44px] items-center gap-1 rounded-xl px-3.5 sm:px-4 text-sm sm:text-base font-black cursor-pointer"
+                    onClick={() => humanBid(gameState.firstCallerSeat === null ? 'CALL' : 'GRAB')}
+                    className="game-btn-gold inline-flex h-[32px] tall-h:h-[42px] items-center gap-1 rounded-xl px-4 sm:px-6 text-xs sm:text-base font-black cursor-pointer"
                   >
-                    <SkipForward className="h-4 w-4" /> 不要
+                    <Crown className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    {gameState.firstCallerSeat === null ? '叫地主' : '抢地主 ×2'}
                   </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={cycleHint}
-                  className="game-btn-sky inline-flex min-h-[38px] sm:min-h-[44px] items-center gap-1 rounded-xl px-3.5 sm:px-4 text-sm sm:text-base font-black cursor-pointer"
-                >
-                  <Lightbulb className="h-4 w-4" /> 提示
-                </button>
-
-                <button
-                  type="button"
-                  onClick={requestLiveCoach}
-                  className="game-btn-emerald inline-flex min-h-[38px] sm:min-h-[44px] items-center gap-1 rounded-xl px-3.5 sm:px-4 text-sm sm:text-base font-black cursor-pointer"
-                >
-                  <Brain className="h-4 w-4" /> 教练
-                </button>
-
-                {selectedCardIds.length > 0 && (
+                  {!gameState.mingpaiSeats.includes(0) && (
+                    <button
+                      type="button"
+                      onClick={humanMingpai}
+                      className="game-btn-crimson inline-flex h-[32px] tall-h:h-[42px] items-center gap-1 rounded-xl px-3 sm:px-4 text-xs sm:text-base font-black cursor-pointer"
+                    >
+                      <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 明牌 ×4
+                    </button>
+                  )}
+                </div>
+              ) : gameState.phase === 'DOUBLING' && gameState.doubleChoices[0] === null ? (
+                <div className="flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap">
+                  <div className="flex h-[32px] tall-h:h-[42px] px-2.5 sm:px-3 items-center justify-center gap-1 rounded-full border-2 border-amber-300/80 bg-black/65 font-mono text-xs sm:text-sm font-black text-amber-300 shadow-lg">
+                    <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-400" /> {turnSecondsLeft}
+                  </div>
                   <button
                     type="button"
-                    onClick={clearSelection}
-                    className="hud-glass inline-flex min-h-[38px] sm:min-h-[44px] items-center gap-1 rounded-xl px-3 text-sm font-bold text-amber-100 hover:border-amber-300/60 cursor-pointer"
+                    onClick={() => humanDouble(1)}
+                    className="game-btn-slate inline-flex h-[32px] tall-h:h-[42px] items-center gap-1 rounded-xl px-3 sm:px-5 text-xs sm:text-base font-black cursor-pointer"
                   >
-                    <RotateCcw className="h-4 w-4" /> 重选
+                    <Ban className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 不加倍
                   </button>
-                )}
+                  <button
+                    type="button"
+                    onClick={() => humanDouble(2)}
+                    className="game-btn-gold inline-flex h-[32px] tall-h:h-[42px] items-center gap-1 rounded-xl px-3 sm:px-5 text-xs sm:text-base font-black cursor-pointer"
+                  >
+                    <ChevronsUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 加倍 ×2
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => humanDouble(4)}
+                    className="game-btn-crimson inline-flex h-[32px] tall-h:h-[42px] items-center gap-1 rounded-xl px-3 sm:px-5 text-xs sm:text-base font-black cursor-pointer"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 超级加倍 ×4
+                  </button>
+                </div>
+              ) : gameState.phase === 'PLAYING' && isHumanTurn ? (
+                <div className="flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap">
+                  <div
+                    className={`flex h-[32px] tall-h:h-[42px] px-2.5 items-center justify-center gap-1 rounded-full border-2 bg-black/70 font-mono text-xs sm:text-sm font-black shadow-lg ${
+                      turnSecondsLeft <= 5
+                        ? 'border-rose-400 text-rose-300 animate-pulse'
+                        : 'border-amber-300/80 text-amber-300'
+                    }`}
+                  >
+                    <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span>{turnSecondsLeft}</span>
+                    <span className="short-h-hide text-[11px] font-sans text-amber-100">轮到您</span>
+                  </div>
 
-                <button
-                  type="button"
-                  disabled={!matchedSelection}
-                  onClick={humanPlaySelected}
-                  className={`inline-flex min-h-[38px] sm:min-h-[44px] items-center gap-1.5 rounded-xl px-4 sm:px-6 text-sm sm:text-base font-black transition ${
-                    matchedSelection
-                      ? 'game-btn-gold cursor-pointer'
-                      : 'cursor-not-allowed border border-white/15 bg-black/50 text-white/40'
-                  }`}
-                >
-                  <ArrowUpCircle className="h-4 w-4" />
-                  {matchedSelection ? `出牌 · ${formatPatternLabel(matchedSelection)}` : '出牌'}
-                </button>
-              </div>
-            )}
+                  {gameState.lastPlay !== null && (
+                    <button
+                      type="button"
+                      onClick={humanPass}
+                      className="game-btn-slate inline-flex h-[32px] tall-h:h-[42px] items-center gap-1 rounded-xl px-3 sm:px-4 text-xs sm:text-base font-black cursor-pointer"
+                    >
+                      <SkipForward className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 不要
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={cycleHint}
+                    className="game-btn-sky inline-flex h-[32px] tall-h:h-[42px] items-center gap-1 rounded-xl px-3 sm:px-4 text-xs sm:text-base font-black cursor-pointer"
+                  >
+                    <Lightbulb className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 提示
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={requestLiveCoach}
+                    className="game-btn-emerald inline-flex h-[32px] tall-h:h-[42px] items-center gap-1 rounded-xl px-3 sm:px-4 text-xs sm:text-base font-black cursor-pointer"
+                  >
+                    <Brain className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 教练
+                  </button>
+
+                  {selectedCardIds.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={clearSelection}
+                      className="hud-glass inline-flex h-[32px] tall-h:h-[42px] items-center gap-1 rounded-xl px-2.5 sm:px-3 text-xs sm:text-sm font-bold text-amber-100 hover:border-amber-300/60 cursor-pointer"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 重选
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    disabled={!matchedSelection}
+                    onClick={humanPlaySelected}
+                    className={`inline-flex h-[32px] tall-h:h-[42px] items-center gap-1.5 rounded-xl px-3.5 sm:px-6 text-xs sm:text-base font-black transition ${
+                      matchedSelection
+                        ? 'game-btn-gold cursor-pointer'
+                        : 'cursor-not-allowed border border-white/15 bg-black/50 text-white/40'
+                    }`}
+                  >
+                    <ArrowUpCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    {matchedSelection ? `出牌 · ${formatPatternLabel(matchedSelection)}` : '出牌'}
+                  </button>
+                </div>
+              ) : (
+                waitTurnLabel &&
+                gameState.phase !== 'FINISHED' && (
+                  <div className="rounded-full border border-white/10 bg-black/35 px-3 py-0.5 text-[11px] font-bold text-emerald-200/75">
+                    {waitTurnLabel}
+                  </div>
+                )
+              )}
+            </div>
 
             {/* Hero Hand Row: Left Status Dock + Center HandBar + Right Sort Pill (Non-overlapping) */}
-            <div className="flex w-full items-end justify-between gap-1.5">
+            <div className="flex w-full min-w-0 items-end justify-between gap-1 sm:gap-1.5">
               {/* Left Hero Status Capsule */}
-              <div className="hud-glass hidden sm:flex forced-l:flex shrink-0 items-center gap-1.5 short-h:flex-col short-h:items-start short-h:gap-1 rounded-2xl px-2 py-1.5 text-xs">
-                <div className="flex items-center gap-1.5">
+              <div className="hud-glass hidden sm:flex forced-l:flex shrink-0 items-center gap-1.5 short-h:flex-col short-h:items-center short-h:gap-0.5 short-h:px-1.5 short-h:py-1 short-h:rounded-xl rounded-2xl px-2 py-1.5 text-xs">
+                <div className="flex items-center gap-1">
                   <RolePortraitSvg role={heroRole} size="sm" />
                   <RoleBadge role={heroRole} size="sm" />
                 </div>
                 <span className="short-h-hide font-bold" style={{ color: tier.badgeColor }}>
                   {tier.name}
                 </span>
-                <ChipBalancePill chips={chips} lastDelta={lastChipDelta} compact />
+                <span className="hidden short-h:inline font-mono text-[10px] font-black text-amber-300">
+                  {chips.toLocaleString()}
+                </span>
+                <div className="short-h-hide">
+                  <ChipBalancePill chips={chips} lastDelta={lastChipDelta} compact />
+                </div>
                 {gameState.phase === 'PLAYING' && gameState.hands[0].length <= 2 && (
                   <span className="siren-pulse rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-black text-white">
                     {gameState.hands[0].length === 1 ? '报单' : '报双'}
@@ -664,19 +688,19 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
                 )}
               </div>
 
-              <div className="min-w-0 flex-1 flex justify-center">
+              <div className="flex min-w-0 flex-1 justify-center">
                 <HandBar />
               </div>
 
               {/* Right Sort Pill */}
-              <div className="shrink-0 flex items-center gap-1.5 pb-1">
+              <div className="shrink-0 flex items-center gap-1.5 pb-0.5 sm:pb-1">
                 <button
                   type="button"
                   onClick={toggleSortMode}
                   title="切换手牌排序方式"
-                  className="hud-glass flex items-center gap-1 rounded-xl px-2.5 py-2 text-xs font-black text-amber-200 hover:border-amber-300/60 cursor-pointer whitespace-nowrap"
+                  className="hud-glass flex items-center gap-1 rounded-xl px-2.5 py-2 short-h:px-2 short-h:py-1.5 text-xs short-h:text-[11px] font-black text-amber-200 hover:border-amber-300/60 cursor-pointer whitespace-nowrap"
                 >
-                  <ArrowUpDown className="h-4 w-4 text-amber-300" />
+                  <ArrowUpDown className="h-4 w-4 short-h:h-3.5 short-h:w-3.5 text-amber-300" />
                   <span>{sortMode === 'rank' ? '按点数' : '按牌型'}</span>
                 </button>
               </div>

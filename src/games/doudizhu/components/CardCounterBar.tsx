@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ChevronDown,
   ChevronUp,
@@ -61,6 +61,12 @@ export const CardCounterBar: React.FC = () => {
 
   const [collapsed, setCollapsed] = useState(() => isShortLandscape);
 
+  useEffect(() => {
+    if (isShortLandscape) {
+      setCollapsed(true);
+    }
+  }, [isShortLandscape]);
+
   const counts = useMemo(
     () => computeExternalRemainingCounts(hand, moveHistory),
     [hand, moveHistory],
@@ -68,6 +74,113 @@ export const CardCounterBar: React.FC = () => {
 
   const visibleRanks = mode === 'advanced' ? HIGH_RANKS_DESC : ALL_RANKS_DESC;
   const jokerAlert = counts[Rank.BIG_JOKER] === 1 && counts[Rank.SMALL_JOKER] === 1;
+  const activeModeLabel = MODES.find((m) => m.id === mode)?.label ?? '全记牌';
+
+  if (isShortLandscape) {
+    return (
+      <div className="relative inline-flex flex-col items-center">
+        <button
+          type="button"
+          onClick={() => setCollapsed((c) => !c)}
+          className="hud-glass inline-flex items-center gap-1 rounded-xl px-2 py-1 text-[11px] font-black text-amber-200 hover:border-amber-300/60 cursor-pointer whitespace-nowrap"
+          title={collapsed ? '展开记牌器' : '收起记牌器'}
+        >
+          <ClipboardList className="h-3.5 w-3.5 text-amber-300" />
+          <span>记牌</span>
+          <span className="rounded bg-amber-400/20 px-1 py-0.2 text-[10px] text-amber-300">
+            {activeModeLabel}
+          </span>
+          {jokerAlert && (
+            <span className="inline-flex items-center gap-0.5 rounded bg-rose-600/60 px-1 py-0.2 text-[9px] font-black text-rose-100">
+              <ShieldAlert className="h-2.5 w-2.5" /> 王炸
+            </span>
+          )}
+          {collapsed ? (
+            <ChevronDown className="h-3.5 w-3.5 text-amber-300" />
+          ) : (
+            <ChevronUp className="h-3.5 w-3.5 text-amber-300" />
+          )}
+        </button>
+
+        {!collapsed && (
+          <div className="hud-glass absolute top-full right-0 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 mt-1 z-40 flex flex-col gap-1.5 rounded-2xl px-2.5 py-2 shadow-2xl whitespace-nowrap">
+            <div className="flex items-center justify-between gap-1">
+              <div className="flex items-center gap-1">
+                {MODES.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setMode(m.id)}
+                    className={`rounded-lg px-2 py-0.5 text-[11px] font-black transition cursor-pointer ${
+                      mode === m.id
+                        ? 'bg-amber-400 text-emerald-950 shadow'
+                        : 'bg-white/5 text-emerald-100/80 hover:bg-white/10'
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setCollapsed(true)}
+                className="ml-1 rounded-md border border-white/15 bg-white/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-200 hover:bg-white/20 cursor-pointer"
+              >
+                收起
+              </button>
+            </div>
+
+            {mode === 'off' && (
+              <div className="flex items-center justify-center gap-1 text-[11px] text-emerald-200/65">
+                <EyeOff className="h-3.5 w-3.5" /> 记牌器已关闭
+              </div>
+            )}
+
+            {mode === 'blind' && (
+              <div className="flex items-center justify-center gap-2 text-xs">
+                <span className="text-amber-200">盲记抽测中 (+500金币)</span>
+                {phase === 'PLAYING' && (
+                  <button
+                    type="button"
+                    onClick={triggerManualBlindQuiz}
+                    className="inline-flex items-center gap-1 rounded-md bg-amber-400 px-2 py-0.5 font-black text-emerald-950 cursor-pointer"
+                  >
+                    <HelpCircle className="h-3.5 w-3.5" /> 自测
+                  </button>
+                )}
+              </div>
+            )}
+
+            {(mode === 'assist' || mode === 'advanced') && (
+              <div className="flex items-center justify-center gap-1">
+                {visibleRanks.map((r) => {
+                  const count = counts[r];
+                  const isBombThreat = r <= Rank.TWO && count === 4;
+                  const shortLabel =
+                    r === Rank.BIG_JOKER ? '大' : r === Rank.SMALL_JOKER ? '小' : RANK_LABELS[r];
+                  return (
+                    <div
+                      key={r}
+                      className={`flex min-w-[20px] flex-col items-center rounded border px-0.5 py-0.5 leading-tight ${
+                        count === 0
+                          ? 'border-white/5 bg-white/5 opacity-35'
+                          : isBombThreat
+                            ? 'border-rose-400/70 bg-rose-500/25 text-rose-100'
+                            : 'border-amber-400/30 bg-emerald-950/85 text-amber-100'
+                      }`}
+                    >
+                      <span className="text-[9px] font-bold">{shortLabel}</span>
+                      <span className="font-mono text-[10px] font-black">{count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="relative inline-flex flex-col items-center">
@@ -75,7 +188,7 @@ export const CardCounterBar: React.FC = () => {
         <div className="flex items-center justify-center gap-1 whitespace-nowrap">
           <span className="inline-flex items-center gap-0.5 text-[10px] font-black text-amber-200/90 pr-0.5">
             <ClipboardList className="h-3.5 w-3.5 text-amber-300" />
-            <span className="short-h-hide">记牌</span>
+            <span>记牌</span>
           </span>
 
           {MODES.map((m) => (
@@ -115,10 +228,7 @@ export const CardCounterBar: React.FC = () => {
                   <ChevronDown className="h-3.5 w-3.5" />
                 </>
               ) : (
-                <>
-                  <span className="short-h:inline hidden">收起</span>
-                  <ChevronUp className="h-3.5 w-3.5" />
-                </>
+                <ChevronUp className="h-3.5 w-3.5" />
               )}
             </button>
           )}
@@ -126,13 +236,13 @@ export const CardCounterBar: React.FC = () => {
 
         {/* Desktop inline rank bar */}
         {!collapsed && mode === 'off' && (
-          <div className="short-h-hide flex items-center gap-1 text-[11px] text-emerald-200/65">
+          <div className="flex items-center gap-1 text-[11px] text-emerald-200/65">
             <EyeOff className="h-3.5 w-3.5" /> 记牌器已关闭
           </div>
         )}
 
         {!collapsed && mode === 'blind' && (
-          <div className="short-h-hide flex items-center gap-2 text-[11px]">
+          <div className="flex items-center gap-2 text-[11px]">
             <span className="inline-flex items-center gap-1 text-amber-200">
               <Eye className="h-3.5 w-3.5 text-amber-300" />
               盲记抽测 (+500金币)
@@ -150,7 +260,7 @@ export const CardCounterBar: React.FC = () => {
         )}
 
         {!collapsed && (mode === 'assist' || mode === 'advanced') && (
-          <div className="short-h-hide flex items-center justify-center gap-1 whitespace-nowrap">
+          <div className="flex items-center justify-center gap-1 whitespace-nowrap">
             {visibleRanks.map((r) => {
               const count = counts[r];
               const isBombThreat = r <= Rank.TWO && count === 4;
@@ -180,48 +290,6 @@ export const CardCounterBar: React.FC = () => {
           </div>
         )}
       </div>
-
-      {/* Mobile / Forced Landscape Floating Popover */}
-      {!collapsed && mode !== 'off' && (
-        <div className="hidden short-h:flex hud-glass absolute top-full mt-1 z-30 items-center gap-1 rounded-xl px-2.5 py-1.5 shadow-2xl whitespace-nowrap">
-          {mode === 'blind' ? (
-            <div className="flex items-center gap-2 text-xs">
-              <span className="text-amber-200">盲记抽测中 (+500金币)</span>
-              {phase === 'PLAYING' && (
-                <button
-                  type="button"
-                  onClick={triggerManualBlindQuiz}
-                  className="inline-flex items-center gap-1 rounded-md bg-amber-400 px-2 py-0.5 font-black text-emerald-950 cursor-pointer"
-                >
-                  <HelpCircle className="h-3.5 w-3.5" /> 自测
-                </button>
-              )}
-            </div>
-          ) : (
-            visibleRanks.map((r) => {
-              const count = counts[r];
-              const isBombThreat = r <= Rank.TWO && count === 4;
-              const shortLabel =
-                r === Rank.BIG_JOKER ? '大' : r === Rank.SMALL_JOKER ? '小' : RANK_LABELS[r];
-              return (
-                <div
-                  key={r}
-                  className={`flex min-w-[21px] flex-col items-center rounded border px-0.5 py-0.5 leading-tight ${
-                    count === 0
-                      ? 'border-white/5 bg-white/5 opacity-35'
-                      : isBombThreat
-                        ? 'border-rose-400/70 bg-rose-500/25 text-rose-100'
-                        : 'border-amber-400/30 bg-emerald-950/85 text-amber-100'
-                  }`}
-                >
-                  <span className="text-[9px] font-bold">{shortLabel}</span>
-                  <span className="font-mono text-[10px] font-black">{count}</span>
-                </div>
-              );
-            })
-          )}
-        </div>
-      )}
     </div>
   );
 };

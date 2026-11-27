@@ -21,12 +21,12 @@ interface PlayerSeatProps {
 
 function MiniCardStack({ count }: { count: number }) {
   return (
-    <div className="relative flex items-center justify-center">
+    <div className="relative flex shrink-0 items-center justify-center">
       {/* Layered mini card-back stack */}
-      <div className="relative h-9 w-7 sm:h-11 sm:w-8">
+      <div className="relative h-9 w-7 sm:h-11 sm:w-8 short-h:h-8 short-h:w-6">
         <div className="absolute -left-0.5 -top-0.5 h-full w-full rounded-md border border-amber-300/45 bg-emerald-900 shadow" />
         <div className="relative flex h-full w-full items-center justify-center rounded-md border border-amber-300/80 bg-gradient-to-br from-emerald-800 via-emerald-950 to-black shadow-md">
-          <span className="font-mono text-xs sm:text-sm font-black text-amber-200 drop-shadow">
+          <span className="font-mono text-xs sm:text-sm short-h:text-[11px] font-black text-amber-200 drop-shadow">
             {count}
           </span>
         </div>
@@ -36,7 +36,7 @@ function MiniCardStack({ count }: { count: number }) {
 }
 
 export const PlayerSeat: React.FC<PlayerSeatProps> = ({
-  seat,
+  seat: _seat,
   name,
   align,
   role,
@@ -62,10 +62,10 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
 
   return (
     <div
-      className={`relative flex flex-col ${align === 'left' ? 'items-start' : 'items-end'} gap-1.5`}
+      className={`relative flex min-w-0 max-w-full flex-col ${align === 'left' ? 'items-start' : 'items-end'}`}
     >
       <div
-        className={`relative flex items-center gap-2 rounded-2xl border px-2 py-1.5 sm:px-3 sm:py-2 backdrop-blur-md transition-all ${cardTone} ${
+        className={`relative flex min-w-0 max-w-full items-center gap-2 short-h:gap-1.5 rounded-2xl border px-2 py-1.5 sm:px-3 sm:py-2 short-h:px-2 short-h:py-1 backdrop-blur-md transition-all ${cardTone} ${
           align === 'right' ? 'flex-row-reverse text-right' : 'flex-row text-left'
         }`}
       >
@@ -85,10 +85,12 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
           )}
         </div>
 
-        {/* Name + Identity + Mini Card Count Stack */}
-        <div className="min-w-[74px] sm:min-w-[92px]">
+        {/* Name + Identity + Inline Thinking Indicator */}
+        <div className="min-w-0 max-w-[96px] sm:max-w-[130px]">
           <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : ''}`}>
-            <span className="truncate text-xs sm:text-sm font-black text-amber-50">{name}</span>
+            <span className="truncate text-xs sm:text-sm short-h:text-[11px] font-black text-amber-50">
+              {name}
+            </span>
           </div>
 
           <div
@@ -96,31 +98,31 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
           >
             <RoleBadge role={role} size="sm" />
             {doubleChoice && doubleChoice > 1 && (
-              <span className="rounded bg-rose-500/35 px-1.5 py-0.5 text-[10px] font-black text-rose-100">
+              <span className="shrink-0 rounded bg-rose-500/35 px-1.5 py-0.5 text-[10px] font-black text-rose-100">
                 ×{doubleChoice}
               </span>
             )}
+            {isThinking && (
+              <span className="inline-flex shrink-0 items-center gap-0.5 text-[10px] font-bold text-amber-300 animate-pulse">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-300" />
+                <span className="short-h-hide">思考</span>
+              </span>
+            )}
           </div>
-
-          {isThinking && (
-            <div className="mt-0.5 animate-pulse text-[11px] font-bold text-amber-300">
-              {seat === 1 ? '下家' : '上家'}思考中…
-            </div>
-          )}
         </div>
 
         <MiniCardStack count={cardCount} />
       </div>
 
-      {/* Speech Callout Bubble */}
+      {/* Speech Callout Bubble (positioned absolutely so it never shifts table height) */}
       <AnimatePresence>
         {bubble && (
           <motion.div
             initial={{ opacity: 0, scale: 0.78, y: -4 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            className={`rounded-xl border border-amber-200 bg-gradient-to-b from-amber-300 to-amber-500 px-3 py-1 text-xs sm:text-sm font-black text-emerald-950 shadow-lg ${
-              align === 'left' ? 'ml-2' : 'mr-2'
+            className={`pointer-events-none absolute top-full mt-1 z-20 whitespace-nowrap rounded-xl border border-amber-200 bg-gradient-to-b from-amber-300 to-amber-500 px-2.5 py-0.5 text-xs sm:text-sm font-black text-emerald-950 shadow-lg ${
+              align === 'left' ? 'left-1' : 'right-1'
             }`}
           >
             {bubble}
@@ -130,7 +132,11 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
 
       {/* Mingpai Open Hand */}
       {isMingpai && cards.length > 0 && (
-        <div className="flex max-w-[180px] sm:max-w-[220px] flex-wrap gap-0.5 rounded-xl border border-amber-400/35 bg-black/55 p-1 backdrop-blur-sm">
+        <div
+          className={`mt-1.5 short-h:mt-0 short-h:absolute short-h:top-full short-h:mt-1 short-h:z-20 ${
+            align === 'left' ? 'short-h:left-0' : 'short-h:right-0'
+          } flex max-w-[180px] sm:max-w-[220px] flex-wrap gap-0.5 rounded-xl border border-amber-400/35 bg-black/65 p-1 backdrop-blur-sm`}
+        >
           {sortCardsByRank(cards).map((c) => (
             <PlayingCard key={c.id} card={c} size="xs" largeFont={largeFont} />
           ))}

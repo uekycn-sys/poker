@@ -444,11 +444,11 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
           : 'text-[11px] leading-none'
         : size === 'md'
           ? largeFont
-            ? 'text-base leading-none'
+            ? 'text-base short-h:text-[13px] leading-none'
             : 'text-[13px] sm:text-sm leading-none'
           : largeFont
-            ? 'text-lg sm:text-xl leading-none'
-            : 'text-[14px] sm:text-[15px] leading-none';
+            ? 'text-lg sm:text-xl short-h:text-[15px] leading-none'
+            : 'text-[14px] sm:text-[15px] short-h:text-[13px] leading-none';
 
   const jokerCornerTextSize =
     size === 'xs'
@@ -512,7 +512,7 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
                 size === 'xs'
                   ? 'mt-0.5 h-2.5 w-2.5'
                   : largeFont
-                    ? 'mt-0.5 h-3.5 w-3.5 sm:h-4 sm:w-4'
+                    ? 'mt-0.5 h-3.5 w-3.5 sm:h-4 sm:w-4 short-h:h-3 short-h:w-3'
                     : 'mt-0.5 h-2.5 w-2.5 sm:h-3 sm:w-3'
               }
             />

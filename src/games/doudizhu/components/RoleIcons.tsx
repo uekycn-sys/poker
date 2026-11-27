@@ -9,8 +9,8 @@ interface RolePortraitSvgProps {
 }
 
 const PORTRAIT_SIZES: Record<NonNullable<RolePortraitSvgProps['size']>, string> = {
-  sm: 'h-9 w-9 sm:h-10 sm:w-10',
-  md: 'h-12 w-12 sm:h-14 sm:w-14 short-h:h-11 short-h:w-11',
+  sm: 'h-9 w-9 sm:h-10 sm:w-10 short-h:h-7 short-h:w-7',
+  md: 'h-12 w-12 sm:h-14 sm:w-14 short-h:h-9 short-h:w-9',
   lg: 'h-14 w-14 sm:h-16 sm:w-16',
 };
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'poker-master-pwa-v1';
+const CACHE_NAME = 'happy-poker-pwa-v2';
 const CORE_ASSETS = [
   './',
   './index.html',

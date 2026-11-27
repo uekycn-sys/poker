@@ -19,6 +19,30 @@ export const HandBar: React.FC = () => {
   const largeCardFont = usePlayerStore((s) => s.largeCardFont);
   const viewport = useStageViewport();
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [measuredWidth, setMeasuredWidth] = useState(0);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const update = () => {
+      if (el.clientWidth > 0) {
+        setMeasuredWidth(el.clientWidth);
+      }
+    };
+    update();
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(() => update());
+      ro.observe(el);
+      return () => ro.disconnect();
+    }
+
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
   const sortedHand = useMemo(
     () => (sortMode === 'pattern' ? sortCardsByPattern(hand) : sortCardsByRank(hand)),
     [hand, sortMode],
@@ -79,33 +103,36 @@ export const HandBar: React.FC = () => {
   const previewMin = dragState ? Math.min(dragState.start, dragState.current) : -1;
   const previewMax = dragState ? Math.max(dragState.start, dragState.current) : -1;
 
-  // Dynamic step width so up to 20 cards fit cleanly on desktop, mobile landscape, and CSS-forced landscape
+  // Dynamic step width matched to CSS --card-lg-w & measured container width so up to 20 cards fit cleanly
   const { isShortLandscape, isUltraShort } = viewport;
   const cardWidth = isUltraShort
-    ? 56
+    ? 54
     : isShortLandscape
-      ? 62
+      ? 60
       : viewport.width >= 1440 && viewport.height >= 820
         ? 94
         : 84;
-  const availableWidth = Math.max(280, viewport.width - (isShortLandscape ? 235 : 320));
+  const availableWidth = Math.max(
+    180,
+    (measuredWidth > 0 ? measuredWidth : viewport.width - 280) - 6,
+  );
   const count = Math.max(1, sortedHand.length);
   const idealVisibleStep = isShortLandscape ? 30 : 42;
   const maxStep = count > 1 ? Math.floor((availableWidth - cardWidth) / (count - 1)) : cardWidth;
-  const visibleStep = Math.max(19, Math.min(idealVisibleStep, maxStep));
-  const overlapPx = Math.max(18, cardWidth - visibleStep);
-  const liftSelected = isShortLandscape ? -14 : -22;
-  const liftPreview = isShortLandscape ? -8 : -12;
+  const visibleStep = Math.max(14, Math.min(idealVisibleStep, maxStep));
+  const overlapPx = Math.max(14, cardWidth - visibleStep);
+  const liftSelected = isShortLandscape ? -12 : -22;
+  const liftPreview = isShortLandscape ? -7 : -12;
 
   return (
-    <div className="relative flex flex-col items-center">
+    <div ref={containerRef} className="relative flex w-full min-w-0 flex-col items-center">
       <AnimatePresence>
         {smartSelectionNotice && (
           <motion.div
             initial={{ opacity: 0, y: 8, scale: 0.94 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6 }}
-            className="mb-1 rounded-full border border-amber-300/60 bg-amber-500/95 px-3 py-0.5 text-xs font-black text-emerald-950 shadow-lg"
+            className="pointer-events-none absolute bottom-full mb-1 z-30 whitespace-nowrap rounded-full border border-amber-300/60 bg-amber-500/95 px-3 py-0.5 text-xs font-black text-emerald-950 shadow-lg"
           >
             ✨ {smartSelectionNotice}
           </motion.div>
@@ -114,8 +141,8 @@ export const HandBar: React.FC = () => {
 
       <div
         onPointerMove={handlePointerMove}
-        className={`flex touch-none select-none items-end justify-center px-1 pb-1 ${
-          isShortLandscape ? 'pt-2' : 'pt-6'
+        className={`flex max-w-full touch-none select-none items-end justify-center px-0.5 ${
+          isShortLandscape ? 'pt-3 pb-0.5' : 'pt-6 pb-1'
         }`}
       >
         {sortedHand.map((card: Card, index: number) => {
@@ -144,7 +171,7 @@ export const HandBar: React.FC = () => {
                 zIndex: index + 1,
                 marginLeft: index === 0 ? 0 : -overlapPx,
               }}
-              className="cursor-pointer"
+              className="shrink-0 cursor-pointer"
             >
               <PlayingCard
                 card={card}

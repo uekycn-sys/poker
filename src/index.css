@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @custom-variant short-h (&:where([data-short-landscape="true"], [data-short-landscape="true"] *));
-@custom-variant tall-h (&:where(:not([data-short-landscape="true"]), :not([data-short-landscape="true"]) *));
+@custom-variant tall-h (&:where([data-tall-landscape="true"], [data-tall-landscape="true"] *));
 @custom-variant forced-l (&:where([data-forced-landscape="true"], [data-forced-landscape="true"] *));
 
 :root {
@@ -44,51 +44,51 @@
 /* Mobile Landscape (height-constrained, real landscape or CSS-forced landscape) */
 @media (max-height: 540px) {
   :root {
-    --card-xs-w: 28px;
-    --card-xs-h: 40px;
-    --card-sm-w: 38px;
-    --card-sm-h: 54px;
-    --card-md-w: 48px;
-    --card-md-h: 68px;
-    --card-lg-w: 62px;
-    --card-lg-h: 88px;
+    --card-xs-w: 26px;
+    --card-xs-h: 38px;
+    --card-sm-w: 36px;
+    --card-sm-h: 50px;
+    --card-md-w: 46px;
+    --card-md-h: 64px;
+    --card-lg-w: 60px;
+    --card-lg-h: 84px;
   }
 }
 
 :root[data-short-landscape="true"] {
-  --card-xs-w: 28px;
-  --card-xs-h: 40px;
-  --card-sm-w: 38px;
-  --card-sm-h: 54px;
-  --card-md-w: 48px;
-  --card-md-h: 68px;
-  --card-lg-w: 62px;
-  --card-lg-h: 88px;
+  --card-xs-w: 26px;
+  --card-xs-h: 38px;
+  --card-sm-w: 36px;
+  --card-sm-h: 50px;
+  --card-md-w: 46px;
+  --card-md-h: 64px;
+  --card-lg-w: 60px;
+  --card-lg-h: 84px;
 }
 
 /* Ultra-compact Landscape (e.g. 667x375) */
 @media (max-height: 410px) {
   :root {
-    --card-xs-w: 25px;
-    --card-xs-h: 36px;
-    --card-sm-w: 34px;
-    --card-sm-h: 48px;
-    --card-md-w: 42px;
-    --card-md-h: 60px;
-    --card-lg-w: 56px;
-    --card-lg-h: 80px;
+    --card-xs-w: 24px;
+    --card-xs-h: 34px;
+    --card-sm-w: 32px;
+    --card-sm-h: 46px;
+    --card-md-w: 40px;
+    --card-md-h: 56px;
+    --card-lg-w: 54px;
+    --card-lg-h: 76px;
   }
 }
 
 :root[data-ultra-short="true"] {
-  --card-xs-w: 25px;
-  --card-xs-h: 36px;
-  --card-sm-w: 34px;
-  --card-sm-h: 48px;
-  --card-md-w: 42px;
-  --card-md-h: 60px;
-  --card-lg-w: 56px;
-  --card-lg-h: 80px;
+  --card-xs-w: 24px;
+  --card-xs-h: 34px;
+  --card-sm-w: 32px;
+  --card-sm-h: 46px;
+  --card-md-w: 40px;
+  --card-md-h: 56px;
+  --card-lg-w: 54px;
+  --card-lg-h: 76px;
 }
 
 html,

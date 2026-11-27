@@ -1,3 +1,4 @@
+import { secureShuffle } from '../../../shared/random';
 import { Card, Rank, SUIT_ORDER, Suit } from './types';
 
 const STANDARD_SUITS: Exclude<Suit, 'joker'>[] = ['spades', 'hearts', 'clubs', 'diamonds'];
@@ -30,16 +31,9 @@ export function createDeck(): Card[] {
   return deck;
 }
 
-/** Pure Fisher-Yates shuffle returning a new array. */
-export function shuffleDeck(deck: Card[], rng: () => number = Math.random): Card[] {
-  const copy = [...deck];
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    const tmp = copy[i];
-    copy[i] = copy[j];
-    copy[j] = tmp;
-  }
-  return copy;
+/** Pure Fisher-Yates shuffle returning a new array (uses CSPRNG when rng is omitted). */
+export function shuffleDeck(deck: Card[], rng?: () => number): Card[] {
+  return secureShuffle(deck, rng);
 }
 
 /** Sort cards descending by rank, breaking ties by suit priority (spades > hearts > clubs > diamonds). */
@@ -93,16 +87,20 @@ export function sortCardsByPattern(cards: Card[]): Card[] {
   return [...rocket, ...bombs, ...triples, ...pairs, ...singles];
 }
 
-/** Deal 17 cards to each of the 3 seats (sorted descending) plus 3 bottom cards. */
+/** Deal 17 cards round-robin to each of the 3 seats (sorted descending) plus 3 bottom cards. */
 export function dealCards(
   deck: Card[] = createDeck(),
-  rng: () => number = Math.random,
+  rng?: () => number,
 ): { hands: [Card[], Card[], Card[]]; bottomCards: Card[] } {
   const shuffled = shuffleDeck(deck, rng);
+  const rawHands: [Card[], Card[], Card[]] = [[], [], []];
+  for (let i = 0; i < 51; i++) {
+    rawHands[i % 3].push(shuffled[i]);
+  }
   const hands: [Card[], Card[], Card[]] = [
-    sortCardsByRank(shuffled.slice(0, 17)),
-    sortCardsByRank(shuffled.slice(17, 34)),
-    sortCardsByRank(shuffled.slice(34, 51)),
+    sortCardsByRank(rawHands[0]),
+    sortCardsByRank(rawHands[1]),
+    sortCardsByRank(rawHands[2]),
   ];
   const bottomCards = sortCardsByRank(shuffled.slice(51, 54));
   return { hands, bottomCards };
