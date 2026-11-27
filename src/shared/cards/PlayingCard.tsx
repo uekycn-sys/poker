@@ -92,6 +92,65 @@ function SuitIcon({
   }
 }
 
+function JokerCrownSvg({
+  isBig,
+  gradId,
+  className,
+}: {
+  isBig: boolean;
+  gradId: string;
+  className: string;
+}) {
+  const bandFill = isBig ? '#d4af37' : '#94a3b8';
+  const bandStroke = isBig ? '#92400e' : '#1e293b';
+  const bellFill = isBig ? '#d4af37' : '#cbd5e1';
+  const centerBellFill = isBig ? '#fde047' : '#e2e8f0';
+  const bellStroke = isBig ? '#78350f' : '#334155';
+
+  return (
+    <svg viewBox="0 0 72 72" className={className} aria-hidden="true">
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor={isBig ? '#ef4444' : '#334155'} />
+          <stop offset="55%" stopColor={isBig ? '#f59e0b' : '#64748b'} />
+          <stop offset="100%" stopColor={isBig ? '#b91c1c' : '#0f172a'} />
+        </linearGradient>
+      </defs>
+      {/* Radiant Halo */}
+      <circle
+        cx="36"
+        cy="36"
+        r="28"
+        fill="none"
+        stroke={isBig ? '#f59e0b' : '#94a3b8'}
+        strokeOpacity="0.32"
+        strokeWidth="1.2"
+        strokeDasharray="3 2"
+      />
+      {/* Jester 3-Horn Crown */}
+      <path
+        d="M14 48 C15 33, 21 23, 14 15 C22 19, 28 28, 30 34 C32 23, 34 15, 36 10 C38 15, 40 23, 42 34 C44 28, 50 19, 58 15 C51 23, 57 33, 58 48 Z"
+        fill={`url(#${gradId})`}
+        stroke={isBig ? '#991b1b' : '#0f172a'}
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      {/* Jester Bells */}
+      <circle cx="14" cy="14" r="3.6" fill={bellFill} stroke={bellStroke} strokeWidth="1" />
+      <circle cx="36" cy="9.5" r="4.2" fill={centerBellFill} stroke={bellStroke} strokeWidth="1" />
+      <circle cx="58" cy="14" r="3.6" fill={bellFill} stroke={bellStroke} strokeWidth="1" />
+      {/* Crown Band & Diamond */}
+      <rect x="13" y="48" width="46" height="6.5" rx="3" fill={bandFill} stroke={bandStroke} strokeWidth="1" />
+      <path
+        d="M36 44 L40 51.2 L36 58 L32 51.2 Z"
+        fill={isBig ? '#e11d48' : '#0f172a'}
+        stroke={isBig ? '#fef08a' : '#e2e8f0'}
+        strokeWidth="1"
+      />
+    </svg>
+  );
+}
+
 function RoyalCourtArtwork({
   rank,
   suit,
@@ -109,62 +168,21 @@ function RoyalCourtArtwork({
   const secondary = isRed ? '#fb7185' : '#334155';
   const gold = '#d4af37';
 
-  // Jokers: Rich Royal Jester Crown with Bells & Starburst
+  // Jokers: Color Red/Gold (Big Joker) vs Monochrome Black/Silver (Small Joker), zero Chinese text
   if (rank === 16 || rank === 17) {
     const isBig = rank === 17;
     return (
-      <div className="flex flex-col items-center justify-center">
-        <svg
-          viewBox="0 0 72 72"
-          className={size === 'sm' ? 'h-8 w-8' : size === 'md' ? 'h-10 w-10' : 'h-12 w-12 md:h-14 md:w-14'}
-          aria-hidden="true"
-        >
-          <defs>
-            <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor={isBig ? '#ef4444' : '#334155'} />
-              <stop offset="55%" stopColor={isBig ? '#f59e0b' : '#64748b'} />
-              <stop offset="100%" stopColor={isBig ? '#b91c1c' : '#0f172a'} />
-            </linearGradient>
-          </defs>
-          {/* Radiant Halo */}
-          <circle
-            cx="36"
-            cy="36"
-            r="28"
-            fill="none"
-            stroke={isBig ? '#f59e0b' : '#94a3b8'}
-            strokeOpacity="0.32"
-            strokeWidth="1.2"
-            strokeDasharray="3 2"
-          />
-          {/* Jester 3-Horn Crown */}
-          <path
-            d="M14 48 C15 33, 21 23, 14 15 C22 19, 28 28, 30 34 C32 23, 34 15, 36 10 C38 15, 40 23, 42 34 C44 28, 50 19, 58 15 C51 23, 57 33, 58 48 Z"
-            fill={`url(#${gradId})`}
-            stroke={isBig ? '#991b1b' : '#0f172a'}
-            strokeWidth="1.6"
-            strokeLinejoin="round"
-          />
-          {/* Jester Bells */}
-          <circle cx="14" cy="14" r="3.6" fill={gold} stroke="#78350f" strokeWidth="1" />
-          <circle cx="36" cy="9.5" r="4.2" fill={isBig ? '#fde047' : '#cbd5e1'} stroke="#78350f" strokeWidth="1" />
-          <circle cx="58" cy="14" r="3.6" fill={gold} stroke="#78350f" strokeWidth="1" />
-          {/* Crown Band & Diamond */}
-          <rect x="13" y="48" width="46" height="6.5" rx="3" fill={gold} stroke="#92400e" strokeWidth="1" />
-          <path d="M36 44 L40 51.2 L36 58 L32 51.2 Z" fill={isBig ? '#e11d48' : '#1e293b'} stroke="#fef08a" strokeWidth="1" />
-        </svg>
-        {size === 'lg' && (
-          <span
-            className={`mt-0.5 rounded-full border px-1.5 py-0.2 text-[9px] font-black tracking-wider ${
-              isBig
-                ? 'border-rose-400/50 bg-rose-50 text-rose-700'
-                : 'border-slate-400/50 bg-slate-100 text-slate-700'
-            }`}
-          >
-            {isBig ? '大王' : '小王'}
-          </span>
-        )}
-      </div>
+      <JokerCrownSvg
+        isBig={isBig}
+        gradId={gradId}
+        className={
+          size === 'sm'
+            ? 'h-6 w-6 short-h:h-5 short-h:w-5'
+            : size === 'md'
+              ? 'h-9 w-9 short-h:h-8 short-h:w-8'
+              : 'h-12 w-12 md:h-14 md:w-14 short-h:h-9 short-h:w-9'
+        }
+      />
     );
   }
 
@@ -452,12 +470,64 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
 
   const jokerCornerTextSize =
     size === 'xs'
-      ? 'text-[8px]'
+      ? 'text-[7px]'
       : size === 'sm'
-        ? 'text-[9px]'
-        : largeFont
-          ? 'text-[11px] sm:text-xs'
-          : 'text-[10px] sm:text-[11px]';
+        ? 'text-[6px] sm:text-[6.5px] short-h:text-[5.5px] leading-[0.88]'
+        : size === 'md'
+          ? 'text-[7.5px] sm:text-[8.5px] short-h:text-[6.5px] leading-[0.92]'
+          : largeFont
+            ? 'text-[9px] sm:text-[10px] short-h:text-[8px] leading-[0.94]'
+            : 'text-[8px] sm:text-[9px] short-h:text-[7.5px] leading-[0.94]';
+
+  if (size === 'xs') {
+    const isBig = card.rank === 17;
+    return (
+      <div
+        className={`${sizeCls} ${borderGlow} relative select-none overflow-hidden border bg-gradient-to-b ${
+          wildActive
+            ? 'from-[#fff9e6] via-[#fef3c7] to-[#fde68a]'
+            : 'from-[#ffffff] via-[#fdfbf5] to-[#f1eadc]'
+        } transition-shadow ${className}`}
+      >
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-white/75 to-transparent" />
+        <div
+          className={`pointer-events-none absolute inset-[1.5px] rounded-[inherit] border ${
+            wildActive ? 'border-amber-600/35' : 'border-amber-900/10'
+          }`}
+        />
+        <div
+          className={`relative z-10 flex h-full w-full flex-col items-center justify-center gap-0.5 px-0.5 leading-none ${colorCls}`}
+        >
+          {isJoker ? (
+            <>
+              <JokerCrownSvg
+                isBig={isBig}
+                gradId={`jokerGradXs-${uid}`}
+                className="h-4 w-4 short-h:h-3.5 short-h:w-3.5"
+              />
+              <span className="text-[7px] short-h:text-[6.5px] font-black leading-none tracking-tighter">
+                JOKER
+              </span>
+            </>
+          ) : (
+            <>
+              <span
+                className={`${
+                  largeFont ? 'text-[14px] short-h:text-[13px]' : 'text-[13px] short-h:text-[12px]'
+                } font-black leading-none tracking-tighter`}
+              >
+                {label}
+              </span>
+              <SuitIcon
+                suit={card.suit as Exclude<CardSuit, 'joker'>}
+                className="h-3.5 w-3.5 short-h:h-3 short-h:w-3"
+              />
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -478,7 +548,7 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
       />
 
       {/* Top-right badge (Wild / Coach / Custom) */}
-      {resolvedBadge && size !== 'xs' && (
+      {resolvedBadge && (
         <span
           className={`absolute right-1 top-1 z-10 rounded border px-1 py-0.5 text-[9px] font-black leading-none shadow ${
             BADGE_TONE_CLASSES[resolvedBadge.tone ?? 'gold']
@@ -489,7 +559,7 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
       )}
 
       {/* Multi-deck marker */}
-      {showDeckMarker && deckMarkerText && size !== 'xs' && (
+      {showDeckMarker && deckMarkerText && (
         <span className="absolute bottom-1 left-1 z-10 rounded bg-slate-900/10 px-1 text-[9px] font-bold text-slate-600">
           {deckMarkerText}
         </span>
@@ -498,8 +568,8 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
       {/* Top-left rank & suit */}
       <div className={`absolute left-1 top-1 flex flex-col items-center leading-none ${colorCls}`}>
         {isJoker ? (
-          <div className={`flex flex-col items-center ${jokerCornerTextSize} font-black leading-[1.05]`}>
-            {(card.rank === 17 ? ['大', '王'] : ['小', '王']).map((ch, idx) => (
+          <div className={`flex flex-col items-center ${jokerCornerTextSize} font-black`}>
+            {['J', 'O', 'K', 'E', 'R'].map((ch, idx) => (
               <span key={idx}>{ch}</span>
             ))}
           </div>
@@ -509,11 +579,9 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
             <SuitIcon
               suit={card.suit as Exclude<CardSuit, 'joker'>}
               className={
-                size === 'xs'
-                  ? 'mt-0.5 h-2.5 w-2.5'
-                  : largeFont
-                    ? 'mt-0.5 h-3.5 w-3.5 sm:h-4 sm:w-4 short-h:h-3 short-h:w-3'
-                    : 'mt-0.5 h-2.5 w-2.5 sm:h-3 sm:w-3'
+                largeFont
+                  ? 'mt-0.5 h-3.5 w-3.5 sm:h-4 sm:w-4 short-h:h-3 short-h:w-3'
+                  : 'mt-0.5 h-2.5 w-2.5 sm:h-3 sm:w-3'
               }
             />
           </>
@@ -521,46 +589,52 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
       </div>
 
       {/* Center artwork */}
-      <div className={`flex h-full w-full items-center justify-center ${colorCls}`}>
+      <div
+        className={`flex h-full w-full items-center justify-center ${
+          size === 'sm' ? 'pl-2 pt-2' : ''
+        } ${colorCls}`}
+      >
         {showRoyalArt ? (
-          size === 'xs' ? (
-            <span className="text-[11px] font-black">
-              {card.rank === 17 ? '王' : card.rank === 16 ? '鬼' : label}
-            </span>
-          ) : (
-            <RoyalCourtArtwork
-              rank={card.rank}
-              suit={card.suit}
-              isRed={isRed}
-              gradId={`jokerGrad-${uid}`}
-              size={size}
-            />
-          )
+          <RoyalCourtArtwork
+            rank={card.rank}
+            suit={card.suit}
+            isRed={isRed}
+            gradId={`jokerGrad-${uid}`}
+            size={size}
+          />
         ) : (
           <SuitIcon
             suit={card.suit as Exclude<CardSuit, 'joker'>}
             className={
-              size === 'xs'
-                ? 'h-3.5 w-3.5'
-                : size === 'sm'
-                  ? 'h-4 w-4 sm:h-5 sm:w-5'
-                  : largeFont
-                    ? 'h-7 w-7 sm:h-8 sm:w-8'
-                    : 'h-5 w-5 sm:h-7 sm:w-7'
+              size === 'sm'
+                ? 'h-3.5 w-3.5 sm:h-4 sm:w-4'
+                : largeFont
+                  ? 'h-7 w-7 sm:h-8 sm:w-8'
+                  : 'h-5 w-5 sm:h-7 sm:w-7'
             }
           />
         )}
       </div>
 
       {/* Bottom-right mirrored index on large cards */}
-      {size === 'lg' && !isJoker && (
+      {size === 'lg' && (
         <div
           className={`absolute bottom-1 right-1 flex rotate-180 flex-col items-center leading-none opacity-85 ${colorCls}`}
         >
-          <span className={`${largeFont ? 'text-sm sm:text-base' : 'text-[11px] sm:text-xs'} font-black tracking-tighter`}>
-            {label}
-          </span>
-          <SuitIcon suit={card.suit as Exclude<CardSuit, 'joker'>} className="mt-0.5 h-2.5 w-2.5 sm:h-3 sm:w-3" />
+          {isJoker ? (
+            <div className={`flex flex-col items-center ${jokerCornerTextSize} font-black`}>
+              {['J', 'O', 'K', 'E', 'R'].map((ch, idx) => (
+                <span key={idx}>{ch}</span>
+              ))}
+            </div>
+          ) : (
+            <>
+              <span className={`${largeFont ? 'text-sm sm:text-base' : 'text-[11px] sm:text-xs'} font-black tracking-tighter`}>
+                {label}
+              </span>
+              <SuitIcon suit={card.suit as Exclude<CardSuit, 'joker'>} className="mt-0.5 h-2.5 w-2.5 sm:h-3 sm:w-3" />
+            </>
+          )}
         </div>
       )}
     </div>

@@ -203,26 +203,26 @@ export const ReplayScreen: React.FC<ReplayScreenProps> = ({ onExitToLobby }) => 
   const resumeIndex = Math.min(stepIndex, Math.max(0, totalSteps - 1));
 
   return (
-    <div className="felt-table safe-area-pad h-full w-full overflow-y-auto overflow-x-hidden px-4 py-5 md:px-8">
-      <div className="mx-auto max-w-6xl space-y-4">
-        <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-400/30 bg-black/35 px-5 py-3 backdrop-blur-md">
-          <div className="flex flex-wrap items-center gap-2.5">
+    <div className="felt-table safe-area-pad h-full w-full overflow-y-auto overflow-x-hidden px-3 py-3 md:px-8 short-h:px-3 short-h:py-2">
+      <div className="mx-auto max-w-6xl space-y-4 short-h:space-y-2.5">
+        <header className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-amber-400/30 bg-black/35 px-4 py-2.5 sm:px-5 sm:py-3 short-h:px-3 short-h:py-1.5 backdrop-blur-md">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={onExitToLobby}
-              className="flex items-center gap-1 rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-200 hover:bg-amber-500/20 cursor-pointer"
+              className="flex items-center gap-1 rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-1.5 short-h:px-2 short-h:py-1 text-xs short-h:text-[11px] font-bold text-amber-200 hover:bg-amber-500/20 cursor-pointer"
             >
               <Home className="h-3.5 w-3.5" /> 大厅
             </button>
             <button
               type="button"
               onClick={returnToHub}
-              className="flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-bold text-amber-100 hover:bg-white/10 cursor-pointer"
+              className="flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 short-h:px-2 short-h:py-1 text-xs short-h:text-[11px] font-bold text-amber-100 hover:bg-white/10 cursor-pointer"
             >
-              <ArrowLeft className="h-4 w-4" /> 斗地主专区
+              <ArrowLeft className="h-4 w-4 short-h:h-3.5 short-h:w-3.5" /> 斗地主专区
             </button>
-            <h1 className="flex items-center gap-2 text-lg font-black text-amber-50">
-              <History className="h-5 w-5 text-amber-300" /> 上帝视角牌谱复盘
+            <h1 className="flex items-center gap-2 text-lg short-h:text-sm font-black text-amber-50">
+              <History className="h-5 w-5 short-h:h-4 short-h:w-4 text-amber-300" /> 上帝视角牌谱复盘
             </h1>
           </div>
 
@@ -230,7 +230,7 @@ export const ReplayScreen: React.FC<ReplayScreenProps> = ({ onExitToLobby }) => 
             <select
               value={activeRecord.id}
               onChange={(e) => setSelectedMatchId(e.target.value)}
-              className="rounded-xl border border-amber-400/30 bg-emerald-950 px-3 py-1.5 text-xs font-bold text-amber-100"
+              className="rounded-xl border border-amber-400/30 bg-emerald-950 px-3 py-1.5 short-h:px-2 short-h:py-1 text-xs short-h:text-[11px] font-bold text-amber-100"
             >
               {recentMatches.map((m, i) => {
                 const delta = m.settlement.beanDeltas[0];
@@ -247,7 +247,7 @@ export const ReplayScreen: React.FC<ReplayScreenProps> = ({ onExitToLobby }) => 
               <button
                 type="button"
                 onClick={() => resumeFromReplaySnapshot(activeRecord, resumeIndex)}
-                className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 px-4 py-1.5 text-xs font-black text-emerald-950 shadow hover:brightness-105 cursor-pointer"
+                className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 px-4 py-1.5 short-h:px-2.5 short-h:py-1 text-xs short-h:text-[11px] font-black text-emerald-950 shadow hover:brightness-105 cursor-pointer"
               >
                 <RotateCcw className="h-3.5 w-3.5" /> 从此处重新开打
               </button>
@@ -255,9 +255,9 @@ export const ReplayScreen: React.FC<ReplayScreenProps> = ({ onExitToLobby }) => 
           </div>
         </header>
 
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="space-y-4 lg:col-span-2">
-            <div className="rounded-2xl border border-amber-400/20 bg-black/35 px-4 py-2.5">
+        <div className="grid gap-4 short-h:gap-2.5 grid-cols-1 lg:grid-cols-3 forced-l:grid-cols-[1.55fr_1fr] short-h:grid-cols-[1.55fr_1fr]">
+          <div className="space-y-4 short-h:space-y-2.5 lg:col-span-2">
+            <div className="rounded-2xl border border-amber-400/20 bg-black/35 px-4 py-2.5 short-h:px-3 short-h:py-2">
               <div className="flex justify-between text-xs font-bold">
                 <span className="inline-flex items-center gap-1 text-amber-300">
                   <RoleEmblemIcon role="landlord" className="h-3.5 w-3.5" />
@@ -280,14 +280,14 @@ export const ReplayScreen: React.FC<ReplayScreenProps> = ({ onExitToLobby }) => 
               </div>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-3 short-h:gap-2 grid-cols-1 sm:grid-cols-2 forced-l:grid-cols-2 short-h:grid-cols-2">
               {([2, 1] as Seat[]).map((seat) => {
                 const isLandlord = activeRecord.landlordSeat === seat;
                 const isTurn = stepState.currentTurn === seat && stepState.phase !== 'FINISHED';
                 return (
                   <div
                     key={seat}
-                    className={`rounded-2xl border p-3.5 ${
+                    className={`rounded-2xl border p-3.5 short-h:p-2.5 ${
                       isTurn
                         ? 'border-amber-300 bg-emerald-900/75'
                         : 'border-white/10 bg-emerald-950/75'
@@ -312,7 +312,7 @@ export const ReplayScreen: React.FC<ReplayScreenProps> = ({ onExitToLobby }) => 
               })}
             </div>
 
-            <div className="rounded-2xl border border-amber-400/25 bg-black/30 p-4">
+            <div className="rounded-2xl border border-amber-400/25 bg-black/30 p-4 short-h:p-2.5">
               <div className="mb-2 flex items-center justify-between text-xs">
                 <span className="font-bold text-amber-200">桌面当前牌权</span>
                 <span className="text-emerald-200/80">
@@ -366,7 +366,7 @@ export const ReplayScreen: React.FC<ReplayScreenProps> = ({ onExitToLobby }) => 
             />
           </div>
 
-          <aside className="rounded-2xl border border-amber-400/25 bg-emerald-950/80 p-4 space-y-3">
+          <aside className="rounded-2xl border border-amber-400/25 bg-emerald-950/80 p-4 short-h:p-2.5 space-y-3">
             <h2 className="flex items-center gap-1.5 text-sm font-black text-amber-200">
               <AlertTriangle className="h-4 w-4 text-rose-400" /> 关键失误复盘 (Blunders)
             </h2>

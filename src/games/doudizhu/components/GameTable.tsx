@@ -98,7 +98,7 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
   const difficulty = useDoudizhuProfileStore((s) => s.difficulty);
   const sortMode = useDoudizhuProfileStore((s) => s.sortMode);
   const toggleSortMode = useDoudizhuProfileStore((s) => s.toggleSortMode);
-  const { isShortLandscape, isUltraShort } = useStageViewport();
+  const { width: stageWidth, height: stageHeight, isShortLandscape, isUltraShort } = useStageViewport();
 
   const waitTurnLabel =
     gameState.currentTurn === 1
@@ -256,17 +256,19 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
           ) : (
             <>
               <div className="hud-glass flex shrink-0 items-center gap-1.5 sm:gap-2.5 rounded-2xl px-2.5 py-1 short-h:px-2 short-h:py-0.5 shadow-xl whitespace-nowrap">
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                   <span className="short-h-hide text-[11px] font-bold text-amber-200/85">底牌</span>
-                  {gameState.bottomCards.map((c) => (
-                    <PlayingCard
-                      key={c.id}
-                      card={c}
-                      faceDown={!bottomRevealed}
-                      size="xs"
-                      largeFont={largeCardFont}
-                    />
-                  ))}
+                  <div className="flex items-center gap-1.5 rounded-xl bg-black/35 px-1.5 py-0.5 ring-1 ring-amber-300/20">
+                    {gameState.bottomCards.map((c) => (
+                      <PlayingCard
+                        key={c.id}
+                        card={c}
+                        faceDown={!bottomRevealed}
+                        size="xs"
+                        largeFont={largeCardFont}
+                      />
+                    ))}
+                  </div>
                 </div>
 
                 <div className="h-5 w-px bg-amber-300/20" />
@@ -406,19 +408,45 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
                   : seat === 1
                     ? 'justify-end'
                     : 'justify-center';
+              const rowAlignClass =
+                seat === 2
+                  ? 'items-start'
+                  : seat === 1
+                    ? 'items-end'
+                    : 'items-center';
               const initialOffset =
                 seat === 2 ? { x: -24, y: 0 } : seat === 1 ? { x: 24, y: 0 } : { x: 0, y: 24 };
               const cardCount = play?.cards.length ?? 0;
-              const overlapCls = isShortLandscape
-                ? cardCount >= 8
-                  ? '-ml-6'
-                  : cardCount >= 5
-                    ? '-ml-5'
-                    : '-ml-4'
-                : cardCount > 6
-                  ? '-ml-7'
-                  : '-ml-5 sm:-ml-6';
-              const cardSize = isUltraShort || (isShortLandscape && cardCount >= 3) ? 'sm' : 'md';
+              const cardSize: 'sm' | 'md' = isShortLandscape ? 'sm' : 'md';
+              const cardWidth = isUltraShort
+                ? 38
+                : isShortLandscape
+                  ? 42
+                  : stageWidth >= 1440 && stageHeight >= 820
+                    ? 72
+                    : 64;
+              const baseVisibleStep = isUltraShort
+                ? largeCardFont
+                  ? 24
+                  : 22
+                : isShortLandscape
+                  ? largeCardFont
+                    ? 26
+                    : 24
+                  : largeCardFont
+                    ? 36
+                    : 34;
+              const visibleStep = cardCount <= 4 && !isUltraShort ? baseVisibleStep + 4 : baseVisibleStep;
+              const overlapPx = Math.max(8, cardWidth - visibleStep);
+              const maxPerRow = isShortLandscape ? 6 : 10;
+              const cardRows = play
+                ? play.cards.length > maxPerRow
+                  ? [
+                      play.cards.slice(0, Math.ceil(play.cards.length / 2)),
+                      play.cards.slice(Math.ceil(play.cards.length / 2)),
+                    ]
+                  : [play.cards]
+                : [];
 
               return (
                 <div key={seat} className={`flex min-w-0 flex-1 overflow-visible ${alignClass}`}>
@@ -429,11 +457,25 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
                         initial={{ opacity: 0, ...initialOffset, scale: 0.85 }}
                         animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.85 }}
-                        className="flex"
+                        className={`flex flex-col ${rowAlignClass}`}
                       >
-                        {play.cards.map((c) => (
-                          <div key={c.id} className={`${overlapCls} first:ml-0`}>
-                            <PlayingCard card={c} size={cardSize} largeFont={largeCardFont} />
+                        {cardRows.map((row, rowIdx) => (
+                          <div
+                            key={rowIdx}
+                            className={`flex ${rowIdx > 0 ? (isShortLandscape ? '-mt-3' : '-mt-5') : ''}`}
+                          >
+                            {row.map((c, idx) => (
+                              <div
+                                key={c.id}
+                                style={{
+                                  marginLeft: idx === 0 ? 0 : -overlapPx,
+                                  zIndex: rowIdx * 20 + idx + 1,
+                                }}
+                                className="shrink-0"
+                              >
+                                <PlayingCard card={c} size={cardSize} largeFont={largeCardFont} />
+                              </div>
+                            ))}
                           </div>
                         ))}
                       </motion.div>

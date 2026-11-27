@@ -412,22 +412,22 @@ export const HoldemReplayScreen: React.FC<HoldemReplayScreenProps> = ({
     hands.find((h) => h.id === selectedHandId) ?? hands[0] ?? null;
 
   return (
-    <div className="club-bg safe-area-pad h-full w-full overflow-y-auto overflow-x-hidden px-4 py-5 md:px-8">
-      <div className="mx-auto max-w-6xl space-y-5">
-        <header className="gold-card-border flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-black/45 px-5 py-3.5 backdrop-blur-md">
+    <div className="club-bg safe-area-pad h-full w-full overflow-y-auto overflow-x-hidden px-3 py-3 md:px-8 short-h:px-3 short-h:py-2">
+      <div className="mx-auto max-w-6xl space-y-4 short-h:space-y-2.5">
+        <header className="gold-card-border flex flex-wrap items-center justify-between gap-2 rounded-2xl border bg-black/45 px-4 py-2.5 sm:px-5 sm:py-3.5 short-h:px-3 short-h:py-1.5 backdrop-blur-md">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={onBack}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-bold text-amber-100 hover:bg-white/15 cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 short-h:px-2 short-h:py-1 text-xs short-h:text-[11px] font-bold text-amber-100 hover:bg-white/15 cursor-pointer"
             >
-              <ArrowLeft className="h-4 w-4" /> 返回训练营
+              <ArrowLeft className="h-4 w-4 short-h:h-3.5 short-h:w-3.5" /> 返回训练营
             </button>
             <div>
-              <h1 className="text-lg font-black text-amber-100">
+              <h1 className="text-lg short-h:text-sm font-black text-amber-100">
                 德州扑克 · EV 牌局复盘中心
               </h1>
-              <p className="text-[11px] text-emerald-200/70">
+              <p className="short-h-hide text-[11px] text-emerald-200/70">
                 回溯四条街底池与胜率曲线，修复 -EV 失误并从任意街道重新开打
               </p>
             </div>
@@ -444,8 +444,8 @@ export const HoldemReplayScreen: React.FC<HoldemReplayScreenProps> = ({
             </p>
           </div>
         ) : (
-          <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
-            <aside className="gold-card-border space-y-2 rounded-3xl border bg-black/45 p-3.5">
+          <div className="grid gap-4 short-h:gap-2.5 grid-cols-1 lg:grid-cols-[280px_1fr] forced-l:grid-cols-[200px_1fr] short-h:grid-cols-[200px_1fr]">
+            <aside className="gold-card-border space-y-2 rounded-3xl short-h:rounded-2xl border bg-black/45 p-3.5 short-h:p-2.5">
               <div className="px-1 text-xs font-black text-amber-200">
                 近期牌谱 ({hands.length}/12)
               </div>
@@ -491,7 +491,7 @@ export const HoldemReplayScreen: React.FC<HoldemReplayScreenProps> = ({
               })}
             </aside>
 
-            <div className="gold-card-border rounded-3xl border bg-black/45 p-5">
+            <div className="gold-card-border rounded-3xl short-h:rounded-2xl border bg-black/45 p-5 short-h:p-3">
               <HandReviewContent
                 review={activeHand.review}
                 handState={activeHand.finalState}

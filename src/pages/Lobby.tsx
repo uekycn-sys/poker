@@ -392,7 +392,7 @@ export const Lobby: React.FC<LobbyProps> = ({ onLaunchGame }) => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.99 }}
             transition={{ duration: 0.2 }}
-            className={`card-sheen relative grid w-full grid-cols-1 sm:grid-cols-[1.05fr_1.15fr] forced-l:grid-cols-[1.05fr_1.15fr] gap-3 sm:gap-5 items-stretch overflow-hidden rounded-3xl border-2 ${cardFrameClass} p-3.5 sm:p-5 md:p-6 short-h:p-3 shadow-[0_24px_60px_rgba(0,0,0,0.72),inset_0_1px_0_rgba(255,240,180,0.2)] backdrop-blur-md`}
+            className={`card-sheen relative grid w-full grid-cols-1 sm:grid-cols-[1.05fr_1.15fr] forced-l:grid-cols-[1.05fr_1.15fr] short-h:grid-cols-[1.05fr_1.15fr] gap-3 sm:gap-5 items-stretch overflow-hidden rounded-3xl border-2 ${cardFrameClass} p-3.5 sm:p-5 md:p-6 short-h:p-3 shadow-[0_24px_60px_rgba(0,0,0,0.72),inset_0_1px_0_rgba(255,240,180,0.2)] backdrop-blur-md`}
           >
             {/* Left Showcase Column: Title, Meta & Diorama */}
             <div className="flex min-w-0 flex-col justify-between gap-2 sm:gap-3 short-h:gap-1.5">
@@ -638,7 +638,7 @@ export const Lobby: React.FC<LobbyProps> = ({ onLaunchGame }) => {
                 </button>
               </div>
 
-              <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+              <div className="mt-4 grid gap-2.5 sm:grid-cols-2 forced-l:grid-cols-2 short-h:grid-cols-2">
                 {ACHIEVEMENTS.map((ach) => {
                   const unlocked = unlockedAchievements.includes(ach.id);
                   return (

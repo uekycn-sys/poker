@@ -11,7 +11,7 @@
   --table-gold-bright: #f7d774;
 
   /* Responsive PlayingCard dimensions (Desktop default) */
-  --card-xs-w: 36px;
+  --card-xs-w: 38px;
   --card-xs-h: 52px;
   --card-sm-w: 48px;
   --card-sm-h: 68px;
@@ -44,10 +44,10 @@
 /* Mobile Landscape (height-constrained, real landscape or CSS-forced landscape) */
 @media (max-height: 540px) {
   :root {
-    --card-xs-w: 26px;
-    --card-xs-h: 38px;
-    --card-sm-w: 36px;
-    --card-sm-h: 50px;
+    --card-xs-w: 32px;
+    --card-xs-h: 42px;
+    --card-sm-w: 42px;
+    --card-sm-h: 58px;
     --card-md-w: 46px;
     --card-md-h: 64px;
     --card-lg-w: 60px;
@@ -56,10 +56,10 @@
 }
 
 :root[data-short-landscape="true"] {
-  --card-xs-w: 26px;
-  --card-xs-h: 38px;
-  --card-sm-w: 36px;
-  --card-sm-h: 50px;
+  --card-xs-w: 32px;
+  --card-xs-h: 42px;
+  --card-sm-w: 42px;
+  --card-sm-h: 58px;
   --card-md-w: 46px;
   --card-md-h: 64px;
   --card-lg-w: 60px;
@@ -69,10 +69,10 @@
 /* Ultra-compact Landscape (e.g. 667x375) */
 @media (max-height: 410px) {
   :root {
-    --card-xs-w: 24px;
-    --card-xs-h: 34px;
-    --card-sm-w: 32px;
-    --card-sm-h: 46px;
+    --card-xs-w: 30px;
+    --card-xs-h: 38px;
+    --card-sm-w: 38px;
+    --card-sm-h: 52px;
     --card-md-w: 40px;
     --card-md-h: 56px;
     --card-lg-w: 54px;
@@ -81,10 +81,10 @@
 }
 
 :root[data-ultra-short="true"] {
-  --card-xs-w: 24px;
-  --card-xs-h: 34px;
-  --card-sm-w: 32px;
-  --card-sm-h: 46px;
+  --card-xs-w: 30px;
+  --card-xs-h: 38px;
+  --card-sm-w: 38px;
+  --card-sm-h: 52px;
   --card-md-w: 40px;
   --card-md-h: 56px;
   --card-lg-w: 54px;
