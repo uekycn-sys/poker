@@ -342,15 +342,15 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
         </div>
       )}
 
-      {/* Main Arena: Win-Rate Balance Bar + Opponents + Played Cards + Hero Hand */}
-      <div className="relative z-10 flex min-h-0 flex-1 items-stretch px-2 sm:px-5 pb-1">
+      {/* Main Arena: Win-Rate Balance Bar + Opponents + Played Cards */}
+      <div className="relative z-10 flex min-h-0 flex-1 items-stretch px-2 sm:px-5">
         {/* Left Edge Slim Win-Rate Meter with Landlord & Farmer Emblems */}
         <aside className="z-10 mr-1 sm:mr-2.5 flex w-9 sm:w-12 shrink-0 flex-col items-center justify-center py-1 sm:py-2">
           <div className="mb-1 flex flex-col items-center text-[9px] sm:text-xs font-black text-amber-300 whitespace-nowrap">
             <RoleEmblemIcon role="landlord" className="h-3.5 w-3.5 sm:h-4 sm:w-4 mb-0.5" />
             <span>地主 {Math.round(liveWinRate.landlordWinRate)}%</span>
           </div>
-          <div className="relative h-20 sm:h-36 md:h-48 w-2.5 sm:w-3 overflow-hidden rounded-full border border-amber-300/45 bg-emerald-950 shadow-inner">
+          <div className="relative h-16 sm:h-32 md:h-44 w-2.5 sm:w-3 overflow-hidden rounded-full border border-amber-300/45 bg-emerald-950 shadow-inner">
             <motion.div
               className="absolute inset-x-0 top-0 bg-gradient-to-b from-rose-400 via-amber-400 to-amber-600"
               animate={{ height: `${liveWinRate.landlordWinRate}%` }}
@@ -419,23 +419,23 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
               const cardCount = play?.cards.length ?? 0;
               const cardSize: 'sm' | 'md' = isShortLandscape ? 'sm' : 'md';
               const cardWidth = isUltraShort
-                ? 38
+                ? 44
                 : isShortLandscape
-                  ? 42
+                  ? 48
                   : stageWidth >= 1440 && stageHeight >= 820
                     ? 72
-                    : 64;
+                    : 66;
               const baseVisibleStep = isUltraShort
                 ? largeCardFont
-                  ? 24
-                  : 22
+                  ? 26
+                  : 24
                 : isShortLandscape
                   ? largeCardFont
-                    ? 26
-                    : 24
+                    ? 28
+                    : 26
                   : largeCardFont
-                    ? 36
-                    : 34;
+                    ? 38
+                    : 36;
               const visibleStep = cardCount <= 4 && !isUltraShort ? baseVisibleStep + 4 : baseVisibleStep;
               const overlapPx = Math.max(8, cardWidth - visibleStep);
               const maxPerRow = isShortLandscape ? 6 : 10;
@@ -462,7 +462,7 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
                         {cardRows.map((row, rowIdx) => (
                           <div
                             key={rowIdx}
-                            className={`flex ${rowIdx > 0 ? (isShortLandscape ? '-mt-3' : '-mt-5') : ''}`}
+                            className={`flex ${rowIdx > 0 ? (isShortLandscape ? '-mt-4' : '-mt-5') : ''}`}
                           >
                             {row.map((c, idx) => (
                               <div
@@ -556,198 +556,228 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
               </motion.div>
             )}
           </AnimatePresence>
+        </div>
+      </div>
 
-          {/* Bottom Hero Action Bar + Hand + Integrated Profile Dock */}
-          <div className="relative z-20 flex w-full min-w-0 shrink-0 flex-col items-center gap-1 short-h:gap-0.5">
-            <AnimatePresence>
-              {seatBubbles[0] && (
-                <motion.div
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 z-30 whitespace-nowrap rounded-xl border border-amber-200 bg-gradient-to-b from-amber-300 to-amber-500 px-3 py-0.5 text-xs sm:text-sm font-black text-emerald-950 shadow-lg"
-                >
-                  {seatBubbles[0]}
-                </motion.div>
-              )}
-            </AnimatePresence>
+      {/* Bottom Hero Action Bar + Full-Width Hand Dock */}
+      <div className="relative z-20 flex w-full min-w-0 shrink-0 flex-col items-center gap-1 short-h:gap-0.5 px-1.5 sm:px-5 pb-1">
+        <AnimatePresence>
+          {seatBubbles[0] && (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 z-30 whitespace-nowrap rounded-xl border border-amber-200 bg-gradient-to-b from-amber-300 to-amber-500 px-3 py-0.5 text-xs sm:text-sm font-black text-emerald-950 shadow-lg"
+            >
+              {seatBubbles[0]}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-            {/* Fixed-Height Action Controls Row (prevents hand cards from jumping up/down on AI turns) */}
-            <div className="flex h-[34px] tall-h:h-[44px] w-full shrink-0 items-center justify-center">
-              {gameState.phase === 'BIDDING' && isHumanTurn ? (
-                <div className="flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap">
-                  <div className="flex h-[32px] tall-h:h-[42px] px-2.5 sm:px-3 items-center justify-center gap-1 rounded-full border-2 border-amber-300/80 bg-black/65 font-mono text-xs sm:text-sm font-black text-amber-300 shadow-lg">
-                    <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-400" /> {turnSecondsLeft}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => humanBid('PASS')}
-                    className="game-btn-slate inline-flex h-[32px] tall-h:h-[42px] items-center gap-1 rounded-xl px-3 sm:px-5 text-xs sm:text-base font-black cursor-pointer"
-                  >
-                    <Ban className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    {gameState.firstCallerSeat === null ? '不叫' : '不抢'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => humanBid(gameState.firstCallerSeat === null ? 'CALL' : 'GRAB')}
-                    className="game-btn-gold inline-flex h-[32px] tall-h:h-[42px] items-center gap-1 rounded-xl px-4 sm:px-6 text-xs sm:text-base font-black cursor-pointer"
-                  >
-                    <Crown className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    {gameState.firstCallerSeat === null ? '叫地主' : '抢地主 ×2'}
-                  </button>
-                  {!gameState.mingpaiSeats.includes(0) && (
-                    <button
-                      type="button"
-                      onClick={humanMingpai}
-                      className="game-btn-crimson inline-flex h-[32px] tall-h:h-[42px] items-center gap-1 rounded-xl px-3 sm:px-4 text-xs sm:text-base font-black cursor-pointer"
-                    >
-                      <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 明牌 ×4
-                    </button>
-                  )}
-                </div>
-              ) : gameState.phase === 'DOUBLING' && gameState.doubleChoices[0] === null ? (
-                <div className="flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap">
-                  <div className="flex h-[32px] tall-h:h-[42px] px-2.5 sm:px-3 items-center justify-center gap-1 rounded-full border-2 border-amber-300/80 bg-black/65 font-mono text-xs sm:text-sm font-black text-amber-300 shadow-lg">
-                    <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-400" /> {turnSecondsLeft}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => humanDouble(1)}
-                    className="game-btn-slate inline-flex h-[32px] tall-h:h-[42px] items-center gap-1 rounded-xl px-3 sm:px-5 text-xs sm:text-base font-black cursor-pointer"
-                  >
-                    <Ban className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 不加倍
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => humanDouble(2)}
-                    className="game-btn-gold inline-flex h-[32px] tall-h:h-[42px] items-center gap-1 rounded-xl px-3 sm:px-5 text-xs sm:text-base font-black cursor-pointer"
-                  >
-                    <ChevronsUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 加倍 ×2
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => humanDouble(4)}
-                    className="game-btn-crimson inline-flex h-[32px] tall-h:h-[42px] items-center gap-1 rounded-xl px-3 sm:px-5 text-xs sm:text-base font-black cursor-pointer"
-                  >
-                    <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 超级加倍 ×4
-                  </button>
-                </div>
-              ) : gameState.phase === 'PLAYING' && isHumanTurn ? (
-                <div className="flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap">
-                  <div
-                    className={`flex h-[32px] tall-h:h-[42px] px-2.5 items-center justify-center gap-1 rounded-full border-2 bg-black/70 font-mono text-xs sm:text-sm font-black shadow-lg ${
-                      turnSecondsLeft <= 5
-                        ? 'border-rose-400 text-rose-300 animate-pulse'
-                        : 'border-amber-300/80 text-amber-300'
-                    }`}
-                  >
-                    <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    <span>{turnSecondsLeft}</span>
-                    <span className="short-h-hide text-[11px] font-sans text-amber-100">轮到您</span>
-                  </div>
-
-                  {gameState.lastPlay !== null && (
-                    <button
-                      type="button"
-                      onClick={humanPass}
-                      className="game-btn-slate inline-flex h-[32px] tall-h:h-[42px] items-center gap-1 rounded-xl px-3 sm:px-4 text-xs sm:text-base font-black cursor-pointer"
-                    >
-                      <SkipForward className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 不要
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={cycleHint}
-                    className="game-btn-sky inline-flex h-[32px] tall-h:h-[42px] items-center gap-1 rounded-xl px-3 sm:px-4 text-xs sm:text-base font-black cursor-pointer"
-                  >
-                    <Lightbulb className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 提示
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={requestLiveCoach}
-                    className="game-btn-emerald inline-flex h-[32px] tall-h:h-[42px] items-center gap-1 rounded-xl px-3 sm:px-4 text-xs sm:text-base font-black cursor-pointer"
-                  >
-                    <Brain className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 教练
-                  </button>
-
-                  {selectedCardIds.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={clearSelection}
-                      className="hud-glass inline-flex h-[32px] tall-h:h-[42px] items-center gap-1 rounded-xl px-2.5 sm:px-3 text-xs sm:text-sm font-bold text-amber-100 hover:border-amber-300/60 cursor-pointer"
-                    >
-                      <RotateCcw className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 重选
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    disabled={!matchedSelection}
-                    onClick={humanPlaySelected}
-                    className={`inline-flex h-[32px] tall-h:h-[42px] items-center gap-1.5 rounded-xl px-3.5 sm:px-6 text-xs sm:text-base font-black transition ${
-                      matchedSelection
-                        ? 'game-btn-gold cursor-pointer'
-                        : 'cursor-not-allowed border border-white/15 bg-black/50 text-white/40'
-                    }`}
-                  >
-                    <ArrowUpCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    {matchedSelection ? `出牌 · ${formatPatternLabel(matchedSelection)}` : '出牌'}
-                  </button>
-                </div>
-              ) : (
-                waitTurnLabel &&
-                gameState.phase !== 'FINISHED' && (
-                  <div className="rounded-full border border-white/10 bg-black/35 px-3 py-0.5 text-[11px] font-bold text-emerald-200/75">
-                    {waitTurnLabel}
-                  </div>
-                )
+        {/* Fixed-Height Action Controls Row (on mobile landscape, flanks with compact status & sort so HandBar gets 100% width) */}
+        <div
+          className={`flex h-[38px] tall-h:h-[46px] w-full shrink-0 items-center gap-1.5 ${
+            isShortLandscape ? 'justify-between' : 'justify-center'
+          }`}
+        >
+          {isShortLandscape && (
+            <div className="hud-glass flex shrink-0 items-center gap-1.5 rounded-xl px-2 py-1 text-xs">
+              <RolePortraitSvg role={heroRole} size="sm" />
+              <RoleBadge role={heroRole} size="sm" />
+              <span className="font-mono text-[11px] font-black text-amber-300">
+                {chips.toLocaleString()}
+              </span>
+              {gameState.phase === 'PLAYING' && gameState.hands[0].length <= 2 && (
+                <span className="siren-pulse rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-black text-white">
+                  {gameState.hands[0].length === 1 ? '报单' : '报双'}
+                </span>
               )}
             </div>
+          )}
 
-            {/* Hero Hand Row: Left Status Dock + Center HandBar + Right Sort Pill (Non-overlapping) */}
-            <div className="flex w-full min-w-0 items-end justify-between gap-1 sm:gap-1.5">
-              {/* Left Hero Status Capsule */}
-              <div className="hud-glass hidden sm:flex forced-l:flex shrink-0 items-center gap-1.5 short-h:flex-col short-h:items-center short-h:gap-0.5 short-h:px-1.5 short-h:py-1 short-h:rounded-xl rounded-2xl px-2 py-1.5 text-xs">
-                <div className="flex items-center gap-1">
-                  <RolePortraitSvg role={heroRole} size="sm" />
-                  <RoleBadge role={heroRole} size="sm" />
+          <div className="flex min-w-0 flex-1 items-center justify-center">
+            {gameState.phase === 'BIDDING' && isHumanTurn ? (
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap">
+                <div className="flex h-[36px] tall-h:h-[44px] px-2.5 sm:px-3 items-center justify-center gap-1 rounded-full border-2 border-amber-300/80 bg-black/65 font-mono text-[13px] sm:text-sm font-black text-amber-300 shadow-lg">
+                  <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-400" /> {turnSecondsLeft}
                 </div>
-                <span className="short-h-hide font-bold" style={{ color: tier.badgeColor }}>
-                  {tier.name}
-                </span>
-                <span className="hidden short-h:inline font-mono text-[10px] font-black text-amber-300">
-                  {chips.toLocaleString()}
-                </span>
-                <div className="short-h-hide">
-                  <ChipBalancePill chips={chips} lastDelta={lastChipDelta} compact />
-                </div>
-                {gameState.phase === 'PLAYING' && gameState.hands[0].length <= 2 && (
-                  <span className="siren-pulse rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-black text-white">
-                    {gameState.hands[0].length === 1 ? '报单' : '报双'}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex min-w-0 flex-1 justify-center">
-                <HandBar />
-              </div>
-
-              {/* Right Sort Pill */}
-              <div className="shrink-0 flex items-center gap-1.5 pb-0.5 sm:pb-1">
                 <button
                   type="button"
-                  onClick={toggleSortMode}
-                  title="切换手牌排序方式"
-                  className="hud-glass flex items-center gap-1 rounded-xl px-2.5 py-2 short-h:px-2 short-h:py-1.5 text-xs short-h:text-[11px] font-black text-amber-200 hover:border-amber-300/60 cursor-pointer whitespace-nowrap"
+                  onClick={() => humanBid('PASS')}
+                  className="game-btn-slate inline-flex h-[36px] tall-h:h-[44px] items-center gap-1 rounded-xl px-3 sm:px-5 text-[13px] sm:text-base font-black cursor-pointer"
                 >
-                  <ArrowUpDown className="h-4 w-4 short-h:h-3.5 short-h:w-3.5 text-amber-300" />
-                  <span>{sortMode === 'rank' ? '按点数' : '按牌型'}</span>
+                  <Ban className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  {gameState.firstCallerSeat === null ? '不叫' : '不抢'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => humanBid(gameState.firstCallerSeat === null ? 'CALL' : 'GRAB')}
+                  className="game-btn-gold inline-flex h-[36px] tall-h:h-[44px] items-center gap-1 rounded-xl px-3.5 sm:px-6 text-[13px] sm:text-base font-black cursor-pointer"
+                >
+                  <Crown className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  {gameState.firstCallerSeat === null ? '叫地主' : '抢地主 ×2'}
+                </button>
+                {!gameState.mingpaiSeats.includes(0) && (
+                  <button
+                    type="button"
+                    onClick={humanMingpai}
+                    className="game-btn-crimson inline-flex h-[36px] tall-h:h-[44px] items-center gap-1 rounded-xl px-3 sm:px-4 text-[13px] sm:text-base font-black cursor-pointer"
+                  >
+                    <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 明牌 ×4
+                  </button>
+                )}
+              </div>
+            ) : gameState.phase === 'DOUBLING' && gameState.doubleChoices[0] === null ? (
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap">
+                <div className="flex h-[36px] tall-h:h-[44px] px-2.5 sm:px-3 items-center justify-center gap-1 rounded-full border-2 border-amber-300/80 bg-black/65 font-mono text-[13px] sm:text-sm font-black text-amber-300 shadow-lg">
+                  <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-400" /> {turnSecondsLeft}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => humanDouble(1)}
+                  className="game-btn-slate inline-flex h-[36px] tall-h:h-[44px] items-center gap-1 rounded-xl px-3 sm:px-5 text-[13px] sm:text-base font-black cursor-pointer"
+                >
+                  <Ban className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 不加倍
+                </button>
+                <button
+                  type="button"
+                  onClick={() => humanDouble(2)}
+                  className="game-btn-gold inline-flex h-[36px] tall-h:h-[44px] items-center gap-1 rounded-xl px-3 sm:px-5 text-[13px] sm:text-base font-black cursor-pointer"
+                >
+                  <ChevronsUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 加倍 ×2
+                </button>
+                <button
+                  type="button"
+                  onClick={() => humanDouble(4)}
+                  className="game-btn-crimson inline-flex h-[36px] tall-h:h-[44px] items-center gap-1 rounded-xl px-3 sm:px-5 text-[13px] sm:text-base font-black cursor-pointer"
+                >
+                  <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 超级加倍 ×4
                 </button>
               </div>
-            </div>
+            ) : gameState.phase === 'PLAYING' && isHumanTurn ? (
+              <div className="flex items-center justify-center gap-1 sm:gap-2 whitespace-nowrap">
+                <div
+                  className={`flex h-[36px] tall-h:h-[44px] px-2.5 items-center justify-center gap-1 rounded-full border-2 bg-black/70 font-mono text-[13px] sm:text-sm font-black shadow-lg ${
+                    turnSecondsLeft <= 5
+                      ? 'border-rose-400 text-rose-300 animate-pulse'
+                      : 'border-amber-300/80 text-amber-300'
+                  }`}
+                >
+                  <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span>{turnSecondsLeft}</span>
+                  <span className="short-h-hide text-[11px] font-sans text-amber-100">轮到您</span>
+                </div>
+
+                {gameState.lastPlay !== null && (
+                  <button
+                    type="button"
+                    onClick={humanPass}
+                    className="game-btn-slate inline-flex h-[36px] tall-h:h-[44px] items-center gap-1 rounded-xl px-2.5 sm:px-4 text-[13px] sm:text-base font-black cursor-pointer"
+                  >
+                    <SkipForward className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 不要
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={cycleHint}
+                  className="game-btn-sky inline-flex h-[36px] tall-h:h-[44px] items-center gap-1 rounded-xl px-2.5 sm:px-4 text-[13px] sm:text-base font-black cursor-pointer"
+                >
+                  <Lightbulb className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 提示
+                </button>
+
+                <button
+                  type="button"
+                  onClick={requestLiveCoach}
+                  className="game-btn-emerald inline-flex h-[36px] tall-h:h-[44px] items-center gap-1 rounded-xl px-2.5 sm:px-4 text-[13px] sm:text-base font-black cursor-pointer"
+                >
+                  <Brain className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 教练
+                </button>
+
+                {selectedCardIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearSelection}
+                    className="hud-glass inline-flex h-[36px] tall-h:h-[44px] items-center gap-1 rounded-xl px-2.5 sm:px-3 text-[13px] sm:text-sm font-bold text-amber-100 hover:border-amber-300/60 cursor-pointer"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 重选
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  disabled={!matchedSelection}
+                  onClick={humanPlaySelected}
+                  className={`inline-flex h-[36px] tall-h:h-[44px] items-center gap-1.5 rounded-xl px-3 sm:px-6 text-[13px] sm:text-base font-black transition ${
+                    matchedSelection
+                      ? 'game-btn-gold cursor-pointer'
+                      : 'cursor-not-allowed border border-white/15 bg-black/50 text-white/40'
+                  }`}
+                >
+                  <ArrowUpCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  {matchedSelection ? `出牌 · ${formatPatternLabel(matchedSelection)}` : '出牌'}
+                </button>
+              </div>
+            ) : (
+              waitTurnLabel &&
+              gameState.phase !== 'FINISHED' && (
+                <div className="rounded-full border border-white/10 bg-black/35 px-3 py-1 text-xs font-bold text-emerald-200/75">
+                  {waitTurnLabel}
+                </div>
+              )
+            )}
           </div>
+
+          {isShortLandscape && (
+            <button
+              type="button"
+              onClick={toggleSortMode}
+              title="切换手牌排序方式"
+              className="hud-glass flex shrink-0 items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-black text-amber-200 hover:border-amber-300/60 cursor-pointer whitespace-nowrap"
+            >
+              <ArrowUpDown className="h-3.5 w-3.5 text-amber-300" />
+              <span>{sortMode === 'rank' ? '按点数' : '按牌型'}</span>
+            </button>
+          )}
+        </div>
+
+        {/* Hero Hand Row: Full width on short landscape; flanked by status & sort on desktop/tall viewports */}
+        <div className="flex w-full min-w-0 items-end justify-between gap-1 sm:gap-1.5">
+          {!isShortLandscape && (
+            <div className="hud-glass hidden sm:flex forced-l:flex shrink-0 items-center gap-1.5 rounded-2xl px-2 py-1.5 text-xs">
+              <div className="flex items-center gap-1">
+                <RolePortraitSvg role={heroRole} size="sm" />
+                <RoleBadge role={heroRole} size="sm" />
+              </div>
+              <span className="font-bold" style={{ color: tier.badgeColor }}>
+                {tier.name}
+              </span>
+              <ChipBalancePill chips={chips} lastDelta={lastChipDelta} compact />
+              {gameState.phase === 'PLAYING' && gameState.hands[0].length <= 2 && (
+                <span className="siren-pulse rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-black text-white">
+                  {gameState.hands[0].length === 1 ? '报单' : '报双'}
+                </span>
+              )}
+            </div>
+          )}
+
+          <div className="flex min-w-0 flex-1 justify-center">
+            <HandBar />
+          </div>
+
+          {!isShortLandscape && (
+            <div className="shrink-0 flex items-center gap-1.5 pb-1">
+              <button
+                type="button"
+                onClick={toggleSortMode}
+                title="切换手牌排序方式"
+                className="hud-glass flex items-center gap-1 rounded-xl px-2.5 py-2 text-xs font-black text-amber-200 hover:border-amber-300/60 cursor-pointer whitespace-nowrap"
+              >
+                <ArrowUpDown className="h-4 w-4 text-amber-300" />
+                <span>{sortMode === 'rank' ? '按点数' : '按牌型'}</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

@@ -444,7 +444,7 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
           : null;
 
   const borderGlow = selected
-    ? 'ring-2 ring-amber-400 border-amber-400 shadow-[0_3px_0_rgba(180,83,9,0.75),0_14px_26px_rgba(245,158,11,0.5)]'
+    ? 'ring-[3px] ring-amber-400 border-amber-400 shadow-[0_3px_0_rgba(180,83,9,0.75),0_14px_26px_rgba(245,158,11,0.55)]'
     : dragPreview
       ? 'ring-2 ring-sky-400 border-sky-300 shadow-[0_2px_0_rgba(14,116,144,0.6),0_12px_22px_rgba(56,189,248,0.35)]'
       : coachRecommended
@@ -458,26 +458,26 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
       ? 'text-[10px]'
       : size === 'sm'
         ? largeFont
-          ? 'text-xs leading-none'
-          : 'text-[11px] leading-none'
+          ? 'text-sm short-h:text-[13px] leading-none'
+          : 'text-xs short-h:text-[11px] leading-none'
         : size === 'md'
           ? largeFont
-            ? 'text-base short-h:text-[13px] leading-none'
-            : 'text-[13px] sm:text-sm leading-none'
+            ? 'text-lg short-h:text-[15px] leading-none'
+            : 'text-sm short-h:text-[13px] leading-none'
           : largeFont
-            ? 'text-lg sm:text-xl short-h:text-[15px] leading-none'
-            : 'text-[14px] sm:text-[15px] short-h:text-[13px] leading-none';
+            ? 'text-xl sm:text-2xl short-h:text-[19px] leading-none'
+            : 'text-base sm:text-lg short-h:text-[16px] leading-none';
 
   const jokerCornerTextSize =
     size === 'xs'
       ? 'text-[7px]'
       : size === 'sm'
-        ? 'text-[6px] sm:text-[6.5px] short-h:text-[5.5px] leading-[0.88]'
+        ? 'text-[6.5px] sm:text-[7px] short-h:text-[6px] leading-[0.9]'
         : size === 'md'
-          ? 'text-[7.5px] sm:text-[8.5px] short-h:text-[6.5px] leading-[0.92]'
+          ? 'text-[8px] sm:text-[9px] short-h:text-[7px] leading-[0.92]'
           : largeFont
-            ? 'text-[9px] sm:text-[10px] short-h:text-[8px] leading-[0.94]'
-            : 'text-[8px] sm:text-[9px] short-h:text-[7.5px] leading-[0.94]';
+            ? 'text-[11px] sm:text-xs short-h:text-[10px] leading-[0.95]'
+            : 'text-[9px] sm:text-[10px] short-h:text-[8.5px] leading-[0.95]';
 
   if (size === 'xs') {
     const isBig = card.rank === 17;
@@ -503,9 +503,9 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
               <JokerCrownSvg
                 isBig={isBig}
                 gradId={`jokerGradXs-${uid}`}
-                className="h-4 w-4 short-h:h-3.5 short-h:w-3.5"
+                className="h-4.5 w-4.5 short-h:h-4 short-h:w-4"
               />
-              <span className="text-[7px] short-h:text-[6.5px] font-black leading-none tracking-tighter">
+              <span className="text-[7.5px] short-h:text-[7px] font-black leading-none tracking-tighter">
                 JOKER
               </span>
             </>
@@ -513,14 +513,14 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
             <>
               <span
                 className={`${
-                  largeFont ? 'text-[14px] short-h:text-[13px]' : 'text-[13px] short-h:text-[12px]'
+                  largeFont ? 'text-[15px] short-h:text-[14px]' : 'text-[14px] short-h:text-[13px]'
                 } font-black leading-none tracking-tighter`}
               >
                 {label}
               </span>
               <SuitIcon
                 suit={card.suit as Exclude<CardSuit, 'joker'>}
-                className="h-3.5 w-3.5 short-h:h-3 short-h:w-3"
+                className="h-4 w-4 short-h:h-3.5 short-h:w-3.5"
               />
             </>
           )}
@@ -580,8 +580,8 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
               suit={card.suit as Exclude<CardSuit, 'joker'>}
               className={
                 largeFont
-                  ? 'mt-0.5 h-3.5 w-3.5 sm:h-4 sm:w-4 short-h:h-3 short-h:w-3'
-                  : 'mt-0.5 h-2.5 w-2.5 sm:h-3 sm:w-3'
+                  ? 'mt-0.5 h-4 w-4 sm:h-4.5 sm:w-4.5 short-h:h-3.5 short-h:w-3.5'
+                  : 'mt-0.5 h-3 w-3 sm:h-3.5 sm:w-3.5 short-h:h-2.5 short-h:w-2.5'
               }
             />
           </>

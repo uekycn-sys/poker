@@ -64,7 +64,7 @@ function DoudizhuCardDiorama() {
     <div className="relative flex h-28 sm:h-40 md:h-48 short-h:h-[118px] w-full items-center justify-center overflow-hidden rounded-2xl border border-amber-300/25 bg-[radial-gradient(ellipse_at_50%_40%,rgba(16,122,78,0.68),rgba(4,24,16,0.94))] px-4 shadow-inner">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_15%,rgba(251,191,36,0.2),transparent_65%)]" />
 
-      <div className="relative flex items-center justify-center -space-x-3 sm:-space-x-2 pt-1 short-h:scale-[0.88] short-h:origin-center">
+      <div className="relative flex items-center justify-center -space-x-3 sm:-space-x-2 pt-1 short-h:scale-[0.76] short-h:origin-center">
         <div className="-rotate-12 translate-y-2 opacity-90 drop-shadow-xl">
           <PlayingCard card={{ id: 'demo-sj', suit: 'joker', rank: 16 }} size="md" />
         </div>
@@ -92,7 +92,7 @@ function HoldemCardDiorama() {
     <div className="relative flex h-28 sm:h-40 md:h-48 short-h:h-[118px] w-full items-center justify-center overflow-hidden rounded-2xl border border-rose-300/25 bg-[radial-gradient(ellipse_at_50%_40%,rgba(127,29,29,0.55),rgba(8,24,18,0.95))] px-4 shadow-inner">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(244,63,94,0.18),transparent_65%)]" />
 
-      <div className="relative flex items-center gap-4 sm:gap-6 short-h:scale-[0.88] short-h:origin-center">
+      <div className="relative flex items-center gap-4 sm:gap-6 short-h:scale-[0.76] short-h:origin-center">
         <div className="flex items-center -space-x-2.5 pt-1">
           <div className="-rotate-10 translate-y-1 drop-shadow-2xl">
             <PlayingCard card={{ id: 'demo-as', suit: 'spades', rank: 14 }} size="lg" />

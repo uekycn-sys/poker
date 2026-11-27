@@ -61,6 +61,9 @@ const DEFAULT_WIN_RATE: WinRateEvaluation = {
   advantage: 0,
 };
 
+const PLAY_TURN_SECONDS = 45;
+const BID_TURN_SECONDS = 30;
+
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 let fxCounter = 1;
@@ -344,7 +347,7 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
       hints: [],
       hintIndex: 0,
       coachAdvice: null,
-      turnSecondsLeft: nextState.phase === 'PLAYING' ? 30 : 20,
+      turnSecondsLeft: nextState.phase === 'PLAYING' ? PLAY_TURN_SECONDS : BID_TURN_SECONDS,
     });
 
     if (nextState.phase === 'PLAYING' || nextState.phase === 'FINISHED') {
@@ -375,7 +378,7 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
     coachPanelOpen: false,
     coachAdvice: null,
     coachLoading: false,
-    turnSecondsLeft: 30,
+    turnSecondsLeft: PLAY_TURN_SECONDS,
     blindQuizTriggered: false,
     activeBlindQuiz: null,
     blindQuizFeedback: null,
@@ -413,7 +416,7 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
         liveWinRate: DEFAULT_WIN_RATE,
         coachAdvice: null,
         coachLoading: false,
-        turnSecondsLeft: 20,
+        turnSecondsLeft: BID_TURN_SECONDS,
         blindQuizTriggered: false,
         activeBlindQuiz: null,
         blindQuizFeedback: null,
@@ -457,7 +460,7 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
         coachPanelOpen: false,
         coachAdvice: null,
         coachLoading: false,
-        turnSecondsLeft: 30,
+        turnSecondsLeft: PLAY_TURN_SECONDS,
         blindQuizTriggered: true,
         activeBlindQuiz: null,
         blindQuizFeedback: null,
@@ -573,7 +576,7 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
         coachPanelOpen: false,
         coachAdvice: null,
         coachLoading: false,
-        turnSecondsLeft: 30,
+        turnSecondsLeft: PLAY_TURN_SECONDS,
         blindQuizTriggered: true,
         activeBlindQuiz: null,
         blindQuizFeedback: null,

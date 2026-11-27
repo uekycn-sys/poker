@@ -13,12 +13,12 @@
   /* Responsive PlayingCard dimensions (Desktop default) */
   --card-xs-w: 38px;
   --card-xs-h: 52px;
-  --card-sm-w: 48px;
-  --card-sm-h: 68px;
-  --card-md-w: 64px;
-  --card-md-h: 92px;
-  --card-lg-w: 84px;
-  --card-lg-h: 120px;
+  --card-sm-w: 50px;
+  --card-sm-h: 70px;
+  --card-md-w: 66px;
+  --card-md-h: 94px;
+  --card-lg-w: 90px;
+  --card-lg-h: 128px;
 
   /* Safe-area insets */
   --sat: env(safe-area-inset-top, 0px);
@@ -36,59 +36,59 @@
     --card-sm-h: 76px;
     --card-md-w: 72px;
     --card-md-h: 102px;
-    --card-lg-w: 94px;
-    --card-lg-h: 134px;
+    --card-lg-w: 98px;
+    --card-lg-h: 140px;
   }
 }
 
 /* Mobile Landscape (height-constrained, real landscape or CSS-forced landscape) */
 @media (max-height: 540px) {
   :root {
-    --card-xs-w: 32px;
-    --card-xs-h: 42px;
-    --card-sm-w: 42px;
-    --card-sm-h: 58px;
-    --card-md-w: 46px;
-    --card-md-h: 64px;
-    --card-lg-w: 60px;
-    --card-lg-h: 84px;
+    --card-xs-w: 36px;
+    --card-xs-h: 46px;
+    --card-sm-w: 48px;
+    --card-sm-h: 66px;
+    --card-md-w: 52px;
+    --card-md-h: 72px;
+    --card-lg-w: 78px;
+    --card-lg-h: 112px;
   }
 }
 
 :root[data-short-landscape="true"] {
-  --card-xs-w: 32px;
-  --card-xs-h: 42px;
-  --card-sm-w: 42px;
-  --card-sm-h: 58px;
-  --card-md-w: 46px;
-  --card-md-h: 64px;
-  --card-lg-w: 60px;
-  --card-lg-h: 84px;
+  --card-xs-w: 36px;
+  --card-xs-h: 46px;
+  --card-sm-w: 48px;
+  --card-sm-h: 66px;
+  --card-md-w: 52px;
+  --card-md-h: 72px;
+  --card-lg-w: 78px;
+  --card-lg-h: 112px;
 }
 
 /* Ultra-compact Landscape (e.g. 667x375) */
 @media (max-height: 410px) {
   :root {
-    --card-xs-w: 30px;
-    --card-xs-h: 38px;
-    --card-sm-w: 38px;
-    --card-sm-h: 52px;
-    --card-md-w: 40px;
-    --card-md-h: 56px;
-    --card-lg-w: 54px;
-    --card-lg-h: 76px;
+    --card-xs-w: 34px;
+    --card-xs-h: 44px;
+    --card-sm-w: 44px;
+    --card-sm-h: 60px;
+    --card-md-w: 46px;
+    --card-md-h: 64px;
+    --card-lg-w: 70px;
+    --card-lg-h: 100px;
   }
 }
 
 :root[data-ultra-short="true"] {
-  --card-xs-w: 30px;
-  --card-xs-h: 38px;
-  --card-sm-w: 38px;
-  --card-sm-h: 52px;
-  --card-md-w: 40px;
-  --card-md-h: 56px;
-  --card-lg-w: 54px;
-  --card-lg-h: 76px;
+  --card-xs-w: 34px;
+  --card-xs-h: 44px;
+  --card-sm-w: 44px;
+  --card-sm-h: 60px;
+  --card-md-w: 46px;
+  --card-md-h: 64px;
+  --card-lg-w: 70px;
+  --card-lg-h: 100px;
 }
 
 html,

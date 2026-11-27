@@ -106,23 +106,23 @@ export const HandBar: React.FC = () => {
   // Dynamic step width matched to CSS --card-lg-w & measured container width so up to 20 cards fit cleanly
   const { isShortLandscape, isUltraShort } = viewport;
   const cardWidth = isUltraShort
-    ? 54
+    ? 70
     : isShortLandscape
-      ? 60
+      ? 78
       : viewport.width >= 1440 && viewport.height >= 820
-        ? 94
-        : 84;
+        ? 98
+        : 90;
   const availableWidth = Math.max(
     180,
-    (measuredWidth > 0 ? measuredWidth : viewport.width - 280) - 6,
+    (measuredWidth > 0 ? measuredWidth : viewport.width - (isShortLandscape ? 16 : 280)) - 6,
   );
   const count = Math.max(1, sortedHand.length);
-  const idealVisibleStep = isShortLandscape ? 30 : 42;
+  const idealVisibleStep = isShortLandscape ? 42 : 48;
   const maxStep = count > 1 ? Math.floor((availableWidth - cardWidth) / (count - 1)) : cardWidth;
-  const visibleStep = Math.max(14, Math.min(idealVisibleStep, maxStep));
-  const overlapPx = Math.max(14, cardWidth - visibleStep);
-  const liftSelected = isShortLandscape ? -12 : -22;
-  const liftPreview = isShortLandscape ? -7 : -12;
+  const visibleStep = Math.max(20, Math.min(idealVisibleStep, maxStep));
+  const overlapPx = Math.max(10, cardWidth - visibleStep);
+  const liftSelected = isShortLandscape ? -16 : -24;
+  const liftPreview = isShortLandscape ? -9 : -12;
 
   return (
     <div ref={containerRef} className="relative flex w-full min-w-0 flex-col items-center">
@@ -142,7 +142,7 @@ export const HandBar: React.FC = () => {
       <div
         onPointerMove={handlePointerMove}
         className={`flex max-w-full touch-none select-none items-end justify-center px-0.5 ${
-          isShortLandscape ? 'pt-3 pb-0.5' : 'pt-6 pb-1'
+          isShortLandscape ? 'pt-4 pb-0.5' : 'pt-6 pb-1'
         }`}
       >
         {sortedHand.map((card: Card, index: number) => {
