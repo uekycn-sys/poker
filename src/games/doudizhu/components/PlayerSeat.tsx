@@ -135,7 +135,7 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
         <div
           className={`mt-1.5 short-h:mt-0 short-h:absolute short-h:top-full short-h:mt-1 short-h:z-20 ${
             align === 'left' ? 'short-h:left-0' : 'short-h:right-0'
-          } flex max-w-[180px] sm:max-w-[220px] flex-wrap gap-0.5 rounded-xl border border-amber-400/35 bg-black/65 p-1 backdrop-blur-sm`}
+          } flex max-w-[180px] sm:max-w-[220px] flex-wrap gap-1 rounded-xl border border-amber-400/35 bg-black/65 p-1 backdrop-blur-sm`}
         >
           {sortCardsByRank(cards).map((c) => (
             <PlayingCard key={c.id} card={c} size="xs" largeFont={largeFont} />

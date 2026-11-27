@@ -114,10 +114,10 @@ export const HandBar: React.FC = () => {
         : 90;
   const availableWidth = Math.max(
     180,
-    (measuredWidth > 0 ? measuredWidth : viewport.width - (isShortLandscape ? 16 : 280)) - 6,
+    (measuredWidth > 0 ? measuredWidth : viewport.width - (isShortLandscape ? 12 : 280)) - 2,
   );
   const count = Math.max(1, sortedHand.length);
-  const idealVisibleStep = isShortLandscape ? 42 : 48;
+  const idealVisibleStep = isShortLandscape ? 50 : 54;
   const maxStep = count > 1 ? Math.floor((availableWidth - cardWidth) / (count - 1)) : cardWidth;
   const visibleStep = Math.max(20, Math.min(idealVisibleStep, maxStep));
   const overlapPx = Math.max(10, cardWidth - visibleStep);

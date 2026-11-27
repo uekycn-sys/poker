@@ -437,15 +437,15 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
                     : 66;
               const baseVisibleStep = isUltraShort
                 ? largeCardFont
-                  ? 26
-                  : 24
+                  ? 28
+                  : 26
                 : isShortLandscape
                   ? largeCardFont
-                    ? 28
-                    : 26
+                    ? 30
+                    : 28
                   : largeCardFont
-                    ? 38
-                    : 36;
+                    ? 40
+                    : 38;
               const visibleStep = cardCount <= 4 && !isUltraShort ? baseVisibleStep + 4 : baseVisibleStep;
               const overlapPx = Math.max(8, cardWidth - visibleStep);
               const maxPerRow = isShortLandscape ? 6 : 10;
@@ -570,7 +570,7 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
       </div>
 
       {/* Bottom Hero Action Bar + Full-Width Hand Dock */}
-      <div className="relative z-20 flex w-full min-w-0 shrink-0 flex-col items-center gap-1 short-h:gap-0.5 px-2.5 sm:px-5 pb-1.5">
+      <div className="relative z-20 flex w-full min-w-0 shrink-0 flex-col items-center gap-1 short-h:gap-0.5 px-2 sm:px-5 pb-1.5">
         <AnimatePresence>
           {seatBubbles[0] && (
             <motion.div
