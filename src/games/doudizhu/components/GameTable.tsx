@@ -149,9 +149,19 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
         shakeScreen ? 'table-shake' : ''
       }`}
     >
-      {/* Mahogany Perimeter Bezel & Subtle Gold Felt Inlay */}
-      <div className="pointer-events-none absolute inset-0 border-[6px] border-[#26140b] sm:border-[10px] short-h:border-[4px]" />
-      <div className="pointer-events-none absolute inset-[6px] sm:inset-[10px] short-h:inset-[4px] rounded-2xl border border-amber-300/20" />
+      {/* Mahogany Perimeter Bezel & Subtle Gold Felt Inlay (framed inside safe area away from iOS status-bar blur) */}
+      <div
+        className="pointer-events-none absolute"
+        style={{
+          top: 'var(--sat)',
+          right: 'var(--sar)',
+          bottom: 'var(--sab)',
+          left: 'var(--sal)',
+        }}
+      >
+        <div className="absolute inset-0 border-[6px] border-[#26140b] sm:border-[10px] short-h:border-[4px] short-h:rounded-xl" />
+        <div className="absolute inset-[6px] sm:inset-[10px] short-h:inset-[4px] rounded-2xl short-h:rounded-xl border border-amber-300/20" />
+      </div>
 
       {/* Center Embossed Table Watermark */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -168,7 +178,7 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
       <TableEffects fx={activeFx} onComplete={clearActiveFx} />
 
       {/* Top Floating HUD Row (Elder-Friendly: Every Key Action Has Icon + Clear Label) */}
-      <header className="short-h-compact relative z-20 flex shrink-0 items-center justify-between gap-1 sm:gap-1.5 px-2 pt-1.5 sm:px-5 sm:pt-2.5">
+      <header className="short-h-compact relative z-20 flex shrink-0 items-center justify-between gap-1 sm:gap-1.5 px-2.5 pt-1.5 sm:px-5 sm:pt-2.5">
         {/* Left Navigation & Audio Controls */}
         <div className="flex shrink-0 items-center gap-1 whitespace-nowrap">
           <button
@@ -343,7 +353,7 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
       )}
 
       {/* Main Arena: Win-Rate Balance Bar + Opponents + Played Cards */}
-      <div className="relative z-10 flex min-h-0 flex-1 items-stretch px-2 sm:px-5">
+      <div className="relative z-10 flex min-h-0 flex-1 items-stretch px-2.5 sm:px-5">
         {/* Left Edge Slim Win-Rate Meter with Landlord & Farmer Emblems */}
         <aside className="z-10 mr-1 sm:mr-2.5 flex w-9 sm:w-12 shrink-0 flex-col items-center justify-center py-1 sm:py-2">
           <div className="mb-1 flex flex-col items-center text-[9px] sm:text-xs font-black text-amber-300 whitespace-nowrap">
@@ -560,7 +570,7 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
       </div>
 
       {/* Bottom Hero Action Bar + Full-Width Hand Dock */}
-      <div className="relative z-20 flex w-full min-w-0 shrink-0 flex-col items-center gap-1 short-h:gap-0.5 px-1.5 sm:px-5 pb-1">
+      <div className="relative z-20 flex w-full min-w-0 shrink-0 flex-col items-center gap-1 short-h:gap-0.5 px-2.5 sm:px-5 pb-1.5">
         <AnimatePresence>
           {seatBubbles[0] && (
             <motion.div

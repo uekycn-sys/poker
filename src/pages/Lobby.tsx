@@ -182,7 +182,15 @@ export const Lobby: React.FC<LobbyProps> = ({ onLaunchGame }) => {
 
   return (
     <div className="casino-room-bg safe-area-pad relative flex h-full w-full flex-col overflow-y-auto sm:overflow-hidden forced-l:overflow-hidden">
-      <div className="pointer-events-none absolute inset-2 rounded-3xl border border-amber-400/15" />
+      <div
+        className="pointer-events-none absolute rounded-3xl border border-amber-400/15"
+        style={{
+          top: 'calc(var(--sat) + 8px)',
+          right: 'calc(var(--sar) + 8px)',
+          bottom: 'calc(var(--sab) + 8px)',
+          left: 'calc(var(--sal) + 8px)',
+        }}
+      />
 
       {/* Top Game Hall HUD Bar */}
       <header className="short-h-compact relative z-20 mx-auto flex w-full max-w-[1440px] shrink-0 items-center justify-between gap-2 px-3 py-2 sm:px-6 sm:py-2.5">

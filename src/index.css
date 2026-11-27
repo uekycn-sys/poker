@@ -119,7 +119,8 @@ body,
 :root[data-forced-landscape="true"] {
   --sat: env(safe-area-inset-right, 0px);
   --sab: env(safe-area-inset-left, 0px);
-  --sal: env(safe-area-inset-top, 0px);
+  /* Clear iOS Safari/PWA translucent status-bar edge blur (~26px feather below safe-area-inset-top) without affecting zero-inset devices */
+  --sal: calc(env(safe-area-inset-top, 0px) + min(env(safe-area-inset-top, 0px), 26px));
   --sar: env(safe-area-inset-bottom, 0px);
 }
 
