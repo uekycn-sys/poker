@@ -60,11 +60,11 @@ export const OutsQuizModal: React.FC<OutsQuizModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-2 sm:p-4 backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, scale: 0.92, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="gold-card-border w-full max-w-lg rounded-3xl border bg-[#061b13] p-5 shadow-2xl"
+        className="gold-card-border max-h-[94%] w-full max-w-lg overflow-y-auto rounded-2xl sm:rounded-3xl border bg-[#061b13] p-4 sm:p-5 shadow-2xl"
       >
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">

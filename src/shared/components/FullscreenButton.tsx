@@ -94,11 +94,13 @@ export function useFullscreen() {
 
 interface FullscreenButtonProps {
   compact?: boolean;
+  showLabel?: boolean;
   className?: string;
 }
 
 export const FullscreenButton: React.FC<FullscreenButtonProps> = ({
   compact = false,
+  showLabel = false,
   className = '',
 }) => {
   const { isFullscreen, supported, toggleFullscreen } = useFullscreen();
@@ -115,14 +117,18 @@ export const FullscreenButton: React.FC<FullscreenButtonProps> = ({
         isFullscreen
           ? 'border-amber-300/70 bg-amber-400/20 text-amber-200 shadow-[0_0_12px_rgba(251,191,36,0.22)]'
           : 'border-amber-400/35 bg-black/45 text-amber-100 hover:border-amber-300/70 hover:bg-amber-400/15'
-      } ${compact ? 'px-2 py-1.5 text-xs' : 'px-2.5 py-1.5 text-xs font-bold'} ${className}`}
+      } ${compact ? 'px-2.5 py-1.5 text-xs font-bold' : 'px-3 py-1.5 text-xs font-bold'} ${className}`}
     >
       {isFullscreen ? (
-        <Minimize2 className="h-3.5 w-3.5 text-amber-300" />
+        <Minimize2 className="h-4 w-4 text-amber-300" />
       ) : (
-        <Maximize2 className="h-3.5 w-3.5 text-amber-300" />
+        <Maximize2 className="h-4 w-4 text-amber-300" />
       )}
-      {!compact && <span className="hidden sm:inline">{isFullscreen ? '退出全屏' : '全屏'}</span>}
+      {showLabel ? (
+        <span>{isFullscreen ? '退出' : '全屏'}</span>
+      ) : (
+        !compact && <span className="hidden sm:inline">{isFullscreen ? '退出全屏' : '全屏'}</span>
+      )}
     </button>
   );
 };

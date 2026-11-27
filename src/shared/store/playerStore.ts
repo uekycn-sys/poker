@@ -257,7 +257,7 @@ export const usePlayerStore = create<PlayerStoreState>()(
       unlockedAchievements: legacySeed.unlockedAchievements ?? [],
       sfxEnabled: legacySeed.sfxEnabled ?? true,
       voiceEnabled: legacySeed.voiceEnabled ?? true,
-      largeCardFont: legacySeed.largeCardFont ?? false,
+      largeCardFont: legacySeed.largeCardFont ?? true,
 
       setNickname: (nickname) => set({ nickname: nickname.trim() || '皇家牌手' }),
 

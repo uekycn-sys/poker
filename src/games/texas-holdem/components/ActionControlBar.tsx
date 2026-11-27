@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { FastForward, History, Play, Zap } from 'lucide-react';
+import { ArrowUpCircle, Check, Coins, FastForward, History, Play, XCircle, Zap } from 'lucide-react';
 import { getLegalActions } from '../engine/rules';
 import { HandState, PlayerAction } from '../engine/types';
 
@@ -152,9 +152,9 @@ export const ActionControlBar: React.FC<ActionControlBarProps> = ({
           <button
             type="button"
             onClick={() => onAction({ type: 'fold' })}
-            className="game-btn-slate rounded-xl px-4 sm:px-5 py-1.5 sm:py-2 text-xs sm:text-sm font-black cursor-pointer"
+            className="game-btn-slate inline-flex min-h-[36px] sm:min-h-[40px] items-center gap-1.5 rounded-xl px-4 sm:px-5 text-xs sm:text-sm font-black cursor-pointer"
           >
-            弃牌 Fold
+            <XCircle className="h-4 w-4" /> 弃牌 Fold
           </button>
         )}
 
@@ -162,9 +162,9 @@ export const ActionControlBar: React.FC<ActionControlBarProps> = ({
           <button
             type="button"
             onClick={() => onAction({ type: 'check' })}
-            className="game-btn-emerald rounded-xl px-4 sm:px-5 py-1.5 sm:py-2 text-xs sm:text-sm font-black cursor-pointer"
+            className="game-btn-emerald inline-flex min-h-[36px] sm:min-h-[40px] items-center gap-1.5 rounded-xl px-4 sm:px-5 text-xs sm:text-sm font-black cursor-pointer"
           >
-            过牌 Check
+            <Check className="h-4 w-4" /> 过牌 Check
           </button>
         )}
 
@@ -172,9 +172,9 @@ export const ActionControlBar: React.FC<ActionControlBarProps> = ({
           <button
             type="button"
             onClick={() => onAction({ type: 'call' })}
-            className="game-btn-sky rounded-xl px-4 sm:px-5 py-1.5 sm:py-2 text-xs sm:text-sm font-black cursor-pointer"
+            className="game-btn-sky inline-flex min-h-[36px] sm:min-h-[40px] items-center gap-1.5 rounded-xl px-4 sm:px-5 text-xs sm:text-sm font-black cursor-pointer"
           >
-            跟注 {legal.callAmount.toLocaleString()}
+            <Coins className="h-4 w-4" /> 跟注 {legal.callAmount.toLocaleString()}
           </button>
         )}
 
@@ -190,13 +190,20 @@ export const ActionControlBar: React.FC<ActionControlBarProps> = ({
             }
             className={`${
               clampedRaise >= legal.maxRaiseTo ? 'game-btn-crimson' : 'game-btn-gold'
-            } rounded-xl px-4 sm:px-5 py-1.5 sm:py-2 text-xs sm:text-sm font-black cursor-pointer`}
+            } inline-flex min-h-[36px] sm:min-h-[40px] items-center gap-1.5 rounded-xl px-4 sm:px-5 text-xs sm:text-sm font-black cursor-pointer`}
           >
-            {clampedRaise >= legal.maxRaiseTo
-              ? `All-in ${legal.maxRaiseTo.toLocaleString()}`
-              : isOpeningBet
-                ? `下注 ${clampedRaise.toLocaleString()}`
-                : `加注至 ${clampedRaise.toLocaleString()}`}
+            {clampedRaise >= legal.maxRaiseTo ? (
+              <>
+                <Zap className="h-4 w-4 fill-current" /> All-in {legal.maxRaiseTo.toLocaleString()}
+              </>
+            ) : (
+              <>
+                <ArrowUpCircle className="h-4 w-4" />
+                {isOpeningBet
+                  ? `下注 ${clampedRaise.toLocaleString()}`
+                  : `加注至 ${clampedRaise.toLocaleString()}`}
+              </>
+            )}
           </button>
         )}
 
@@ -204,7 +211,7 @@ export const ActionControlBar: React.FC<ActionControlBarProps> = ({
           <button
             type="button"
             onClick={() => onAction({ type: 'all_in' })}
-            className="game-btn-crimson inline-flex items-center justify-center gap-1.5 rounded-xl px-4 sm:px-5 py-1.5 sm:py-2 text-xs sm:text-sm font-black cursor-pointer"
+            className="game-btn-crimson inline-flex min-h-[36px] sm:min-h-[40px] items-center justify-center gap-1.5 rounded-xl px-4 sm:px-5 text-xs sm:text-sm font-black cursor-pointer"
           >
             <Zap className="h-4 w-4 fill-current" /> All-in {legal.maxRaiseTo.toLocaleString()}
           </button>

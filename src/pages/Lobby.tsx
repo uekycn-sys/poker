@@ -7,8 +7,8 @@ import {
   Crown,
   Flame,
   History,
-  MessageSquare,
-  MessageSquareOff,
+  Megaphone,
+  MicOff,
   Play,
   Puzzle,
   Sparkles,
@@ -17,6 +17,7 @@ import {
   Volume2,
   VolumeX,
   X,
+  ZoomIn,
 } from 'lucide-react';
 import {
   ACHIEVEMENTS,
@@ -60,7 +61,7 @@ function renderAchievementIcon(icon: (typeof ACHIEVEMENTS)[number]['icon'], unlo
 
 function DoudizhuCardDiorama() {
   return (
-    <div className="relative flex h-16 sm:h-28 md:h-36 [@media(max-height:540px)]:h-16 w-full items-center justify-center overflow-hidden rounded-2xl border border-amber-300/25 bg-[radial-gradient(ellipse_at_50%_40%,rgba(16,122,78,0.65),rgba(4,24,16,0.92))] px-4 shadow-inner">
+    <div className="relative flex h-16 sm:h-28 md:h-36 short-h:h-16 w-full items-center justify-center overflow-hidden rounded-2xl border border-amber-300/25 bg-[radial-gradient(ellipse_at_50%_40%,rgba(16,122,78,0.65),rgba(4,24,16,0.92))] px-4 shadow-inner">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_15%,rgba(251,191,36,0.18),transparent_65%)]" />
 
       <div className="short-h-mini-cards relative flex items-center justify-center -space-x-4 sm:-space-x-3 pt-1 sm:pt-2">
@@ -88,7 +89,7 @@ function DoudizhuCardDiorama() {
 
 function HoldemCardDiorama() {
   return (
-    <div className="relative flex h-16 sm:h-28 md:h-36 [@media(max-height:540px)]:h-16 w-full items-center justify-center overflow-hidden rounded-2xl border border-rose-300/25 bg-[radial-gradient(ellipse_at_50%_40%,rgba(127,29,29,0.52),rgba(8,24,18,0.94))] px-4 shadow-inner">
+    <div className="relative flex h-16 sm:h-28 md:h-36 short-h:h-16 w-full items-center justify-center overflow-hidden rounded-2xl border border-rose-300/25 bg-[radial-gradient(ellipse_at_50%_40%,rgba(127,29,29,0.52),rgba(8,24,18,0.94))] px-4 shadow-inner">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(244,63,94,0.16),transparent_65%)]" />
 
       <div className="short-h-mini-cards relative flex items-center gap-4 sm:gap-6">
@@ -130,11 +131,13 @@ export const Lobby: React.FC<LobbyProps> = ({ onLaunchGame }) => {
   const unlockedAchievements = usePlayerStore((s) => s.unlockedAchievements);
   const sfxEnabled = usePlayerStore((s) => s.sfxEnabled);
   const voiceEnabled = usePlayerStore((s) => s.voiceEnabled);
+  const largeCardFont = usePlayerStore((s) => s.largeCardFont);
 
   const setAvatarId = usePlayerStore((s) => s.setAvatarId);
   const checkBankruptcyAid = usePlayerStore((s) => s.checkBankruptcyAid);
   const toggleSfx = usePlayerStore((s) => s.toggleSfx);
   const toggleVoice = usePlayerStore((s) => s.toggleVoice);
+  const toggleLargeCardFont = usePlayerStore((s) => s.toggleLargeCardFont);
 
   const clearedPuzzles = useDoudizhuProfileStore((s) => s.clearedPuzzles);
   const recentMatches = useDoudizhuProfileStore((s) => s.recentMatches);
@@ -165,7 +168,7 @@ export const Lobby: React.FC<LobbyProps> = ({ onLaunchGame }) => {
   };
 
   return (
-    <div className="casino-room-bg safe-area-pad flex h-[100dvh] w-screen flex-col overflow-y-auto sm:overflow-hidden">
+    <div className="casino-room-bg safe-area-pad flex h-full w-full flex-col overflow-y-auto sm:overflow-hidden forced-l:overflow-hidden">
       <div className="pointer-events-none fixed inset-2 rounded-3xl border border-amber-400/15" />
 
       {/* Top Game Hall HUD Bar */}
@@ -251,13 +254,14 @@ export const Lobby: React.FC<LobbyProps> = ({ onLaunchGame }) => {
             onClick={toggleSfx}
             aria-label="音效开关"
             title="音效开关"
-            className="rounded-xl border border-white/15 bg-black/45 p-1.5 text-amber-100 transition hover:bg-white/10 cursor-pointer"
+            className="inline-flex items-center gap-1 rounded-xl border border-white/15 bg-black/45 px-2.5 py-1.5 text-xs font-bold text-amber-100 transition hover:bg-white/10 cursor-pointer"
           >
             {sfxEnabled ? (
               <Volume2 className="h-4 w-4 text-emerald-300" />
             ) : (
               <VolumeX className="h-4 w-4 text-slate-400" />
             )}
+            <span className="hidden sm:inline forced-l:inline">音效</span>
           </button>
 
           <button
@@ -265,22 +269,38 @@ export const Lobby: React.FC<LobbyProps> = ({ onLaunchGame }) => {
             onClick={toggleVoice}
             aria-label="语音开关"
             title="语音播报开关"
-            className="rounded-xl border border-white/15 bg-black/45 p-1.5 text-amber-100 transition hover:bg-white/10 cursor-pointer"
+            className="inline-flex items-center gap-1 rounded-xl border border-white/15 bg-black/45 px-2.5 py-1.5 text-xs font-bold text-amber-100 transition hover:bg-white/10 cursor-pointer"
           >
             {voiceEnabled ? (
-              <MessageSquare className="h-4 w-4 text-emerald-300" />
+              <Megaphone className="h-4 w-4 text-emerald-300" />
             ) : (
-              <MessageSquareOff className="h-4 w-4 text-slate-400" />
+              <MicOff className="h-4 w-4 text-slate-400" />
             )}
+            <span className="hidden sm:inline forced-l:inline">语音</span>
           </button>
 
-          <FullscreenButton />
+          <button
+            type="button"
+            onClick={toggleLargeCardFont}
+            aria-label="大字模式"
+            title="适老大字清晰模式"
+            className={`inline-flex items-center gap-1 rounded-xl border px-2.5 py-1.5 text-xs font-bold transition cursor-pointer ${
+              largeCardFont
+                ? 'border-amber-300/70 bg-amber-400/20 text-amber-200'
+                : 'border-white/15 bg-black/45 text-amber-100 hover:bg-white/10'
+            }`}
+          >
+            <ZoomIn className="h-4 w-4 text-amber-300" />
+            <span className="hidden sm:inline forced-l:inline">大字</span>
+          </button>
+
+          <FullscreenButton showLabel />
         </div>
       </header>
 
       {/* Center Stage: Two Grand Commercial Game Banner Cards */}
-      <main className="relative z-10 mx-auto flex min-h-0 w-full max-w-[1360px] flex-1 items-center px-3 py-1 sm:px-6 sm:py-2 [@media(max-height:540px)]:py-0.5">
-        <div className="grid h-full w-full grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:gap-5 items-stretch max-h-[660px]">
+      <main className="relative z-10 mx-auto flex min-h-0 w-full max-w-[1360px] flex-1 items-center px-3 py-1 sm:px-6 sm:py-2 short-h:py-0.5">
+        <div className="grid h-full w-full grid-cols-1 gap-3 sm:grid-cols-2 forced-l:grid-cols-2 sm:gap-4 md:gap-5 items-stretch max-h-[660px]">
           {GAME_REGISTRY.map((game: GameModuleMeta, index: number) => {
             const isDoudizhu = game.id === 'doudizhu';
             const activeStake = selectedStakes[game.id] ?? game.stakes[0]?.baseBet ?? 100;
@@ -298,10 +318,10 @@ export const Lobby: React.FC<LobbyProps> = ({ onLaunchGame }) => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.25, delay: index * 0.04 }}
-                className={`card-sheen relative flex min-h-0 flex-col justify-between overflow-hidden rounded-3xl border-2 ${cardFrameClass} p-3 sm:p-4 md:p-5 [@media(max-height:540px)]:p-2.5 shadow-[0_24px_60px_rgba(0,0,0,0.72),inset_0_1px_0_rgba(255,240,180,0.2)] backdrop-blur-md transition`}
+                className={`card-sheen relative flex min-h-0 flex-col justify-between overflow-hidden rounded-3xl border-2 ${cardFrameClass} p-3 sm:p-4 md:p-5 short-h:p-2.5 shadow-[0_24px_60px_rgba(0,0,0,0.72),inset_0_1px_0_rgba(255,240,180,0.2)] backdrop-blur-md transition`}
               >
                 {/* Top Card Header & Diorama */}
-                <div className="flex flex-col gap-1.5 sm:gap-2.5 [@media(max-height:540px)]:gap-1">
+                <div className="flex flex-col gap-1.5 sm:gap-2.5 short-h:gap-1">
                   <div className="flex items-center justify-between gap-1.5 whitespace-nowrap">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span
@@ -330,7 +350,7 @@ export const Lobby: React.FC<LobbyProps> = ({ onLaunchGame }) => {
                   </div>
 
                   <div className="flex items-baseline justify-between gap-2">
-                    <h2 className="gold-foil-text whitespace-nowrap text-lg sm:text-2xl md:text-3xl [@media(max-height:540px)]:text-lg font-black tracking-wide">
+                    <h2 className="gold-foil-text whitespace-nowrap text-lg sm:text-2xl md:text-3xl short-h:text-lg font-black tracking-wide">
                       {isDoudizhu ? '欢乐斗地主' : '德州扑克 GTO'}
                     </h2>
                     <span className="short-h-hide truncate text-[11px] font-bold text-amber-200/80">
@@ -342,7 +362,7 @@ export const Lobby: React.FC<LobbyProps> = ({ onLaunchGame }) => {
                 </div>
 
                 {/* Middle: Stake Tier Selector */}
-                <div className="my-1.5 sm:my-2.5 [@media(max-height:540px)]:my-1">
+                <div className="my-1.5 sm:my-2.5 short-h:my-1">
                   <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                     {game.stakes.map((stake) => {
                       const selected = activeStake === stake.baseBet;
@@ -357,7 +377,7 @@ export const Lobby: React.FC<LobbyProps> = ({ onLaunchGame }) => {
                               [game.id]: stake.baseBet,
                             }));
                           }}
-                          className={`rounded-xl border px-1.5 py-1 sm:px-2 sm:py-1.5 [@media(max-height:540px)]:py-0.5 text-center transition cursor-pointer ${
+                          className={`rounded-xl border px-1.5 py-1 sm:px-2 sm:py-1.5 short-h:py-0.5 text-center transition cursor-pointer ${
                             selected
                               ? 'border-amber-300 bg-amber-400/22 shadow-[0_0_16px_rgba(251,191,36,0.22)]'
                               : 'border-white/10 bg-black/35 hover:bg-white/10'
@@ -366,7 +386,7 @@ export const Lobby: React.FC<LobbyProps> = ({ onLaunchGame }) => {
                           <div className="text-[10px] font-bold text-emerald-100/90">
                             {stake.name}
                           </div>
-                          <div className="font-mono text-xs sm:text-base [@media(max-height:540px)]:text-xs font-black text-amber-300">
+                          <div className="font-mono text-xs sm:text-base short-h:text-xs font-black text-amber-300">
                             {isDoudizhu ? stake.baseBet : `${stake.baseBet / 2}/${stake.baseBet}`}
                           </div>
                           <div className="short-h-hide text-[9px] text-emerald-200/60">
@@ -379,7 +399,7 @@ export const Lobby: React.FC<LobbyProps> = ({ onLaunchGame }) => {
                 </div>
 
                 {/* Bottom: Glossy 3D CTA + Quick Mode Strip */}
-                <div className="space-y-1.5 sm:space-y-2 border-t border-white/10 pt-2 sm:pt-2.5 [@media(max-height:540px)]:pt-1.5">
+                <div className="space-y-1.5 sm:space-y-2 border-t border-white/10 pt-2 sm:pt-2.5 short-h:pt-1.5">
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
@@ -391,7 +411,7 @@ export const Lobby: React.FC<LobbyProps> = ({ onLaunchGame }) => {
                       }
                       className={`${
                         isDoudizhu ? 'game-btn-gold' : 'game-btn-crimson'
-                      } flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-2xl px-3 py-2 sm:py-2.5 [@media(max-height:540px)]:py-1.5 text-xs sm:text-sm md:text-base font-black cursor-pointer`}
+                      } flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-2xl px-3 py-2 sm:py-2.5 short-h:py-1.5 text-xs sm:text-sm md:text-base font-black cursor-pointer`}
                     >
                       <Play className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-current" />
                       {isDoudizhu
@@ -402,7 +422,7 @@ export const Lobby: React.FC<LobbyProps> = ({ onLaunchGame }) => {
                     <button
                       type="button"
                       onClick={() => onLaunchGame(game.id, { initialView: 'hub' })}
-                      className="flex shrink-0 items-center justify-center gap-0.5 whitespace-nowrap rounded-2xl border border-amber-300/40 bg-black/45 px-2.5 sm:px-3.5 py-2 sm:py-2.5 [@media(max-height:540px)]:py-1.5 text-[11px] sm:text-xs font-black text-amber-200 transition hover:bg-amber-400/15 cursor-pointer"
+                      className="flex shrink-0 items-center justify-center gap-0.5 whitespace-nowrap rounded-2xl border border-amber-300/40 bg-black/45 px-2.5 sm:px-3.5 py-2 sm:py-2.5 short-h:py-1.5 text-[11px] sm:text-xs font-black text-amber-200 transition hover:bg-amber-400/15 cursor-pointer"
                     >
                       专区 <ChevronRight className="h-3.5 w-3.5" />
                     </button>
@@ -505,7 +525,7 @@ export const Lobby: React.FC<LobbyProps> = ({ onLaunchGame }) => {
               initial={{ opacity: 0, scale: 0.92, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.92, y: 12 }}
-              className="hud-glass max-h-[85dvh] w-full max-w-2xl overflow-y-auto rounded-3xl p-5 shadow-2xl"
+              className="hud-glass max-h-[94%] w-full max-w-2xl overflow-y-auto rounded-3xl p-4 sm:p-5 shadow-2xl"
             >
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2">

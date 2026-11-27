@@ -222,7 +222,9 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
     }
 
     if (remainingCount === 1 || remainingCount === 2) {
+      const token = get().sessionToken;
       setTimeout(() => {
+        if (get().sessionToken !== token) return;
         doudizhuSpeech.announceAlarm(remainingCount);
       }, 420);
     }
@@ -311,7 +313,10 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
           label: isAnti ? '反春大捷 · 倍数 ×2' : '春天横扫 · 倍数 ×2',
         },
       });
-      setTimeout(() => doudizhuSpeech.announceSpring(isAnti), 350);
+      setTimeout(() => {
+        if (get().sessionToken !== token) return;
+        doudizhuSpeech.announceSpring(isAnti);
+      }, 350);
     }
 
     setTimeout(() => {
@@ -338,7 +343,7 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
       hints: [],
       hintIndex: 0,
       coachAdvice: null,
-      turnSecondsLeft: nextState.phase === 'PLAYING' ? 25 : 15,
+      turnSecondsLeft: nextState.phase === 'PLAYING' ? 30 : 20,
     });
 
     if (nextState.phase === 'PLAYING' || nextState.phase === 'FINISHED') {
@@ -369,7 +374,7 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
     coachPanelOpen: false,
     coachAdvice: null,
     coachLoading: false,
-    turnSecondsLeft: 25,
+    turnSecondsLeft: 30,
     blindQuizTriggered: false,
     activeBlindQuiz: null,
     blindQuizFeedback: null,
@@ -407,7 +412,7 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
         liveWinRate: DEFAULT_WIN_RATE,
         coachAdvice: null,
         coachLoading: false,
-        turnSecondsLeft: 15,
+        turnSecondsLeft: 20,
         blindQuizTriggered: false,
         activeBlindQuiz: null,
         blindQuizFeedback: null,
@@ -451,7 +456,7 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
         coachPanelOpen: false,
         coachAdvice: null,
         coachLoading: false,
-        turnSecondsLeft: 25,
+        turnSecondsLeft: 30,
         blindQuizTriggered: true,
         activeBlindQuiz: null,
         blindQuizFeedback: null,
@@ -567,7 +572,7 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
         coachPanelOpen: false,
         coachAdvice: null,
         coachLoading: false,
-        turnSecondsLeft: 25,
+        turnSecondsLeft: 30,
         blindQuizTriggered: true,
         activeBlindQuiz: null,
         blindQuizFeedback: null,

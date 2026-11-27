@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Card, sortCardsByPattern, sortCardsByRank } from '../engine';
 import { soundEngine } from '../../../shared/audio/soundEngine';
 import { PlayingCard } from '../../../shared/cards/PlayingCard';
+import { useStageViewport } from '../../../shared/hooks/useStageViewport';
 import { usePlayerStore } from '../../../shared/store/playerStore';
 import { useDoudizhuProfileStore } from '../store/doudizhuProfileStore';
 import { useDoudizhuGameStore } from '../store/doudizhuGameStore';
@@ -16,6 +17,7 @@ export const HandBar: React.FC = () => {
 
   const sortMode = useDoudizhuProfileStore((s) => s.sortMode);
   const largeCardFont = usePlayerStore((s) => s.largeCardFont);
+  const viewport = useStageViewport();
 
   const sortedHand = useMemo(
     () => (sortMode === 'pattern' ? sortCardsByPattern(hand) : sortCardsByRank(hand)),
@@ -24,17 +26,6 @@ export const HandBar: React.FC = () => {
 
   const [dragState, setDragState] = useState<{ start: number; current: number } | null>(null);
   const dragRef = useRef<{ start: number; current: number } | null>(null);
-  const [viewport, setViewport] = useState(() =>
-    typeof window !== 'undefined'
-      ? { w: window.innerWidth, h: window.innerHeight }
-      : { w: 1280, h: 800 },
-  );
-
-  useEffect(() => {
-    const onResize = () => setViewport({ w: window.innerWidth, h: window.innerHeight });
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
 
   const selectedSet = useMemo(() => new Set(selectedCardIds), [selectedCardIds]);
   const coachSet = useMemo(
@@ -88,21 +79,20 @@ export const HandBar: React.FC = () => {
   const previewMin = dragState ? Math.min(dragState.start, dragState.current) : -1;
   const previewMax = dragState ? Math.max(dragState.start, dragState.current) : -1;
 
-  // Dynamic step width so up to 20 cards fit cleanly on both desktop fullscreen and mobile landscape
-  const isShortLandscape = viewport.h <= 540;
-  const isUltraShort = viewport.h <= 410;
+  // Dynamic step width so up to 20 cards fit cleanly on desktop, mobile landscape, and CSS-forced landscape
+  const { isShortLandscape, isUltraShort } = viewport;
   const cardWidth = isUltraShort
-    ? 52
+    ? 56
     : isShortLandscape
-      ? 58
-      : viewport.w >= 1440 && viewport.h >= 820
+      ? 62
+      : viewport.width >= 1440 && viewport.height >= 820
         ? 94
         : 84;
-  const availableWidth = Math.max(260, viewport.w - (isShortLandscape ? 330 : 340));
+  const availableWidth = Math.max(280, viewport.width - (isShortLandscape ? 235 : 320));
   const count = Math.max(1, sortedHand.length);
-  const idealVisibleStep = isShortLandscape ? 28 : 42;
+  const idealVisibleStep = isShortLandscape ? 30 : 42;
   const maxStep = count > 1 ? Math.floor((availableWidth - cardWidth) / (count - 1)) : cardWidth;
-  const visibleStep = Math.max(16, Math.min(idealVisibleStep, maxStep));
+  const visibleStep = Math.max(19, Math.min(idealVisibleStep, maxStep));
   const overlapPx = Math.max(18, cardWidth - visibleStep);
   const liftSelected = isShortLandscape ? -14 : -22;
   const liftPreview = isShortLandscape ? -8 : -12;
@@ -115,7 +105,7 @@ export const HandBar: React.FC = () => {
             initial={{ opacity: 0, y: 8, scale: 0.94 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6 }}
-            className="mb-1 rounded-full border border-amber-300/60 bg-amber-500/95 px-3 py-0.5 text-[11px] font-black text-emerald-950 shadow-lg"
+            className="mb-1 rounded-full border border-amber-300/60 bg-amber-500/95 px-3 py-0.5 text-xs font-black text-emerald-950 shadow-lg"
           >
             ✨ {smartSelectionNotice}
           </motion.div>
@@ -124,7 +114,7 @@ export const HandBar: React.FC = () => {
 
       <div
         onPointerMove={handlePointerMove}
-        className={`flex touch-none select-none items-end justify-center px-2 pb-1 ${
+        className={`flex touch-none select-none items-end justify-center px-1 pb-1 ${
           isShortLandscape ? 'pt-2' : 'pt-6'
         }`}
       >

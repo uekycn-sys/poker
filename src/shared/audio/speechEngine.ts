@@ -3,6 +3,7 @@ export interface SpeechOptions {
   rate?: number;
   pitch?: number;
   volume?: number;
+  queue?: boolean;
 }
 
 class SpeechEngine {
@@ -35,12 +36,23 @@ class SpeechEngine {
     }
     try {
       const synth = window.speechSynthesis;
-      synth.cancel();
+      if (!options.queue) {
+        synth.cancel();
+      }
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = options.lang ?? 'zh-CN';
-      utter.rate = options.rate ?? 1.12;
-      utter.pitch = options.pitch ?? 1.02;
-      utter.volume = options.volume ?? 0.88;
+      utter.rate = options.rate ?? 1.0;
+      utter.pitch = options.pitch ?? 1.0;
+      utter.volume = options.volume ?? 0.95;
+
+      const voices = typeof synth.getVoices === 'function' ? synth.getVoices() : [];
+      const zhVoice =
+        voices.find((v) => v.lang.toLowerCase() === 'zh-cn') ??
+        voices.find((v) => v.lang.toLowerCase().startsWith('zh'));
+      if (zhVoice) {
+        utter.voice = zhVoice;
+      }
+
       synth.speak(utter);
     } catch {
       // Ignore speech synthesis errors in restricted environments

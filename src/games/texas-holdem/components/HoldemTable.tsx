@@ -4,15 +4,17 @@ import {
   ArrowLeft,
   BrainCircuit,
   Home,
-  MessageSquare,
-  MessageSquareOff,
+  Megaphone,
+  MicOff,
   Sparkles,
   Volume2,
   VolumeX,
+  ZoomIn,
 } from 'lucide-react';
 import { PlayingCard } from '../../../shared/cards/PlayingCard';
 import { ChipBalancePill, ChipStack, FullscreenButton } from '../../../shared/components';
 import { TableEffects } from '../../../shared/effects/TableEffects';
+import { useStageViewport } from '../../../shared/hooks/useStageViewport';
 import { usePlayerStore } from '../../../shared/store/playerStore';
 import { AI_PERSONAS_BY_SEAT } from '../ai/personas';
 import { calculateSidePots } from '../engine/sidePots';
@@ -35,20 +37,20 @@ const SEAT_POSITIONS: Record<
 > = {
   0: { posClass: 'bottom-0 left-1/2 -translate-x-1/2 z-20', betAlign: 'top' },
   1: {
-    posClass: 'bottom-[12%] [@media(max-height:540px)]:bottom-0 left-0 sm:left-2 z-10',
+    posClass: 'bottom-[12%] short-h:bottom-0 left-0 sm:left-2 z-10',
     betAlign: 'right',
   },
   2: {
-    posClass: 'top-[10%] [@media(max-height:540px)]:top-0 left-0 sm:left-2 z-10',
+    posClass: 'top-[10%] short-h:top-0 left-0 sm:left-2 z-10',
     betAlign: 'right',
   },
   3: { posClass: 'top-0 left-1/2 -translate-x-1/2 z-10', betAlign: 'bottom' },
   4: {
-    posClass: 'top-[10%] [@media(max-height:540px)]:top-0 right-0 sm:right-2 z-10',
+    posClass: 'top-[10%] short-h:top-0 right-0 sm:right-2 z-10',
     betAlign: 'left',
   },
   5: {
-    posClass: 'bottom-[12%] [@media(max-height:540px)]:bottom-0 right-0 sm:right-2 z-10',
+    posClass: 'bottom-[12%] short-h:bottom-0 right-0 sm:right-2 z-10',
     betAlign: 'left',
   },
 };
@@ -67,8 +69,11 @@ export const HoldemTable: React.FC<HoldemTableProps> = ({ onExitToLobby }) => {
   const humanAvatarId = usePlayerStore((s) => s.avatarId);
   const sfxEnabled = usePlayerStore((s) => s.sfxEnabled);
   const voiceEnabled = usePlayerStore((s) => s.voiceEnabled);
+  const largeCardFont = usePlayerStore((s) => s.largeCardFont);
   const toggleSfx = usePlayerStore((s) => s.toggleSfx);
   const toggleVoice = usePlayerStore((s) => s.toggleVoice);
+  const toggleLargeCardFont = usePlayerStore((s) => s.toggleLargeCardFont);
+  const viewport = useStageViewport();
 
   const hudEnabled = useHoldemProfileStore((s) => s.hudEnabled);
   const outsQuizEnabled = useHoldemProfileStore((s) => s.outsQuizEnabled);
@@ -128,7 +133,7 @@ export const HoldemTable: React.FC<HoldemTableProps> = ({ onExitToLobby }) => {
   const isShowdown = handState.street === 'showdown';
 
   const handleHudToggle = () => {
-    if (typeof window !== 'undefined' && window.innerWidth < 1280) {
+    if (viewport.width < 1280) {
       setCompactHudOpen((v) => !v);
     } else {
       toggleHud();
@@ -136,7 +141,7 @@ export const HoldemTable: React.FC<HoldemTableProps> = ({ onExitToLobby }) => {
   };
 
   return (
-    <div className="casino-room-bg safe-area-pad relative flex h-[100dvh] w-screen flex-col overflow-hidden select-none">
+    <div className="casino-room-bg safe-area-pad relative flex h-full w-full flex-col overflow-hidden select-none">
       {/* Overhead Casino Chandelier Ambient Cone */}
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_55%_45%_at_50%_38%,rgba(253,230,138,0.08),transparent_70%)]" />
 
@@ -160,16 +165,16 @@ export const HoldemTable: React.FC<HoldemTableProps> = ({ onExitToLobby }) => {
             onClick={openHub}
             className="hud-glass inline-flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-bold text-amber-100 hover:border-amber-300/60 cursor-pointer"
           >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span className="short-h-hide hidden sm:inline">训练营</span>
+            <ArrowLeft className="h-4 w-4" />
+            <span>训练营</span>
           </button>
           <button
             type="button"
             onClick={onExitToLobby}
             className="hud-glass inline-flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-bold text-emerald-100 hover:border-amber-300/60 cursor-pointer"
           >
-            <Home className="h-3.5 w-3.5" />
-            <span className="short-h-hide hidden sm:inline">大厅</span>
+            <Home className="h-4 w-4" />
+            <span>大厅</span>
           </button>
 
           <div className="hidden sm:flex items-center gap-1.5 text-xs">
@@ -236,45 +241,67 @@ export const HoldemTable: React.FC<HoldemTableProps> = ({ onExitToLobby }) => {
           <button
             type="button"
             onClick={toggleSfx}
-            className="hud-glass rounded-xl p-1.5 text-amber-100 cursor-pointer"
+            className={`hud-glass inline-flex items-center gap-1 rounded-xl px-2 py-1.5 text-xs font-bold cursor-pointer ${
+              sfxEnabled ? 'text-emerald-200' : 'text-slate-400'
+            }`}
             aria-label="音效开关"
+            title="音效开关"
           >
             {sfxEnabled ? (
-              <Volume2 className="h-3.5 w-3.5 text-emerald-300" />
+              <Volume2 className="h-4 w-4 text-emerald-300" />
             ) : (
-              <VolumeX className="h-3.5 w-3.5 text-slate-400" />
+              <VolumeX className="h-4 w-4 text-slate-400" />
             )}
+            <span className="hidden md:inline">音效</span>
           </button>
           <button
             type="button"
             onClick={toggleVoice}
-            className="hud-glass rounded-xl p-1.5 text-amber-100 cursor-pointer"
+            className={`hud-glass inline-flex items-center gap-1 rounded-xl px-2 py-1.5 text-xs font-bold cursor-pointer ${
+              voiceEnabled ? 'text-emerald-200' : 'text-slate-400'
+            }`}
             aria-label="语音开关"
+            title="语音开关"
           >
             {voiceEnabled ? (
-              <MessageSquare className="h-3.5 w-3.5 text-emerald-300" />
+              <Megaphone className="h-4 w-4 text-emerald-300" />
             ) : (
-              <MessageSquareOff className="h-3.5 w-3.5 text-slate-400" />
+              <MicOff className="h-4 w-4 text-slate-400" />
             )}
+            <span className="hidden md:inline">语音</span>
           </button>
-          <FullscreenButton compact />
+          <button
+            type="button"
+            onClick={toggleLargeCardFont}
+            className={`inline-flex items-center gap-1 rounded-xl px-2 py-1.5 text-xs font-bold cursor-pointer ${
+              largeCardFont
+                ? 'border border-amber-300/70 bg-amber-400/20 text-amber-200'
+                : 'hud-glass text-amber-100'
+            }`}
+            aria-label="大字模式"
+            title="适老大字清晰模式"
+          >
+            <ZoomIn className="h-4 w-4 text-amber-300" />
+            <span>大字</span>
+          </button>
+          <FullscreenButton compact showLabel />
         </div>
       </header>
 
       {/* Main Arena: Fluid 3D Oval Table + Docked/Slide-over Coach HUD */}
-      <div className="relative z-10 mx-auto flex min-h-0 w-full max-w-[1480px] flex-1 items-stretch gap-3 px-2 py-1 sm:px-5 sm:py-2 [@media(max-height:540px)]:py-0.5">
+      <div className="relative z-10 mx-auto flex min-h-0 w-full max-w-[1480px] flex-1 items-stretch gap-3 px-2 py-1 sm:px-5 sm:py-2 short-h:py-0.5">
         {/* Left/Center Poker Table Column */}
         <div className="flex min-h-0 flex-1 flex-col items-center justify-between gap-1">
           {/* Fluid Stadium Table Container */}
           <div className="relative flex min-h-0 w-full max-w-[1040px] flex-1 items-center justify-center">
             {/* Multi-Layer 3D Walnut -> Leather Armrest -> Brushed Brass -> Emerald Speed Cloth */}
-            <div className="holdem-rail-outer relative h-[76%] w-[78%] sm:h-[74%] sm:w-[82%] [@media(max-height:540px)]:mt-2 [@media(max-height:540px)]:h-[74%] [@media(max-height:540px)]:w-[74%] rounded-[999px] p-[4px] sm:p-[7px]">
-              <div className="holdem-leather-rail relative h-full w-full rounded-[999px] p-[7px] sm:p-[13px] md:p-[16px] [@media(max-height:540px)]:p-[6px]">
+            <div className="holdem-rail-outer relative h-[76%] w-[78%] sm:h-[74%] sm:w-[82%] short-h:mt-2 short-h:h-[74%] short-h:w-[74%] rounded-[999px] p-[4px] sm:p-[7px]">
+              <div className="holdem-leather-rail relative h-full w-full rounded-[999px] p-[7px] sm:p-[13px] md:p-[16px] short-h:p-[6px]">
                 {/* Stitched Leather Inner Seam */}
                 <div className="pointer-events-none absolute inset-[4px] sm:inset-[6px] rounded-[999px] border border-dashed border-amber-200/15" />
 
                 <div className="holdem-brass-bezel relative h-full w-full rounded-[999px] p-[2px] sm:p-[3px]">
-                  <div className="holdem-felt-surface relative flex h-full w-full flex-col items-center justify-center [@media(max-height:540px)]:justify-end [@media(max-height:540px)]:pb-2.5 rounded-[999px]">
+                  <div className="holdem-felt-surface relative flex h-full w-full flex-col items-center justify-center short-h:justify-end short-h:pb-2.5 rounded-[999px]">
                     {/* Inner Gold Betting Line Oval */}
                     <div className="pointer-events-none absolute inset-3 sm:inset-6 rounded-[999px] border border-amber-300/20" />
                     <div className="short-h-hide pointer-events-none absolute inset-6 sm:inset-9 rounded-[999px] border border-dashed border-amber-200/10" />
@@ -342,7 +369,7 @@ export const HoldemTable: React.FC<HoldemTableProps> = ({ onExitToLobby }) => {
                                   : ''
                             }
                           >
-                            <PlayingCard card={card} size="md" selected={isWinCard} />
+                            <PlayingCard card={card} size="md" selected={isWinCard} largeFont={largeCardFont} />
                           </motion.div>
                         );
                       })}
@@ -379,6 +406,7 @@ export const HoldemTable: React.FC<HoldemTableProps> = ({ onExitToLobby }) => {
                     humanAvatarId={humanAvatarId}
                     handEvalLabel={evalLabel}
                     betAlign={seatPos.betAlign}
+                    largeFont={largeCardFont}
                   />
                 </div>
               );
@@ -435,8 +463,8 @@ export const HoldemTable: React.FC<HoldemTableProps> = ({ onExitToLobby }) => {
 
       {/* 13x13 GTO Range Matrix Modal */}
       {showMatrixModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-          <div className="max-h-[90dvh] w-full max-w-2xl overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-2 sm:p-4 backdrop-blur-sm">
+          <div className="max-h-[94%] w-full max-w-2xl overflow-y-auto">
             <PreflopRangeMatrix
               heroCards={hero.holeCards}
               initialPosition={hero.position}

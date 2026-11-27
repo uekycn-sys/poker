@@ -1,6 +1,15 @@
 import React, { useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp, Eye, EyeOff, HelpCircle, ShieldAlert } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronUp,
+  ClipboardList,
+  Eye,
+  EyeOff,
+  HelpCircle,
+  ShieldAlert,
+} from 'lucide-react';
 import { RANK_LABELS, Rank, computeExternalRemainingCounts } from '../engine';
+import { useStageViewport } from '../../../shared/hooks/useStageViewport';
 import { CardCounterMode, useDoudizhuProfileStore } from '../store/doudizhuProfileStore';
 import { useDoudizhuGameStore } from '../store/doudizhuGameStore';
 
@@ -48,11 +57,9 @@ export const CardCounterBar: React.FC = () => {
 
   const mode = useDoudizhuProfileStore((s) => s.cardCounterMode);
   const setMode = useDoudizhuProfileStore((s) => s.setCardCounterMode);
+  const { isShortLandscape } = useStageViewport();
 
-  // On height-constrained mobile landscape, start collapsed as a single sleek pill and expand as an overlay
-  const [collapsed, setCollapsed] = useState(() =>
-    typeof window !== 'undefined' ? window.innerHeight <= 540 : false,
-  );
+  const [collapsed, setCollapsed] = useState(() => isShortLandscape);
 
   const counts = useMemo(
     () => computeExternalRemainingCounts(hand, moveHistory),
@@ -64,8 +71,13 @@ export const CardCounterBar: React.FC = () => {
 
   return (
     <div className="relative inline-flex flex-col items-center">
-      <div className="hud-glass inline-flex max-w-full flex-col items-center gap-1 rounded-2xl px-2 py-0.5 sm:px-2.5 sm:py-1 shadow-xl">
+      <div className="hud-glass inline-flex max-w-full flex-col items-center gap-1 rounded-2xl px-2 py-1 sm:px-2.5 shadow-xl">
         <div className="flex items-center justify-center gap-1 whitespace-nowrap">
+          <span className="inline-flex items-center gap-0.5 text-[10px] font-black text-amber-200/90 pr-0.5">
+            <ClipboardList className="h-3.5 w-3.5 text-amber-300" />
+            <span className="short-h-hide">记牌</span>
+          </span>
+
           {MODES.map((m) => (
             <button
               key={m.id}
@@ -74,10 +86,10 @@ export const CardCounterBar: React.FC = () => {
                 setMode(m.id);
                 setCollapsed(false);
               }}
-              className={`rounded-lg px-1.5 sm:px-2 py-0.5 text-[10px] font-black transition cursor-pointer ${
+              className={`rounded-lg px-2 py-0.5 text-[11px] font-black transition cursor-pointer ${
                 mode === m.id
                   ? 'bg-amber-400 text-emerald-950 shadow'
-                  : 'bg-white/5 text-emerald-100/75 hover:bg-white/10'
+                  : 'bg-white/5 text-emerald-100/80 hover:bg-white/10'
               }`}
             >
               {m.label}
@@ -85,8 +97,8 @@ export const CardCounterBar: React.FC = () => {
           ))}
 
           {jokerAlert && collapsed && (
-            <span className="inline-flex items-center gap-0.5 rounded bg-rose-600/45 px-1.5 py-0.5 text-[9px] font-black text-rose-200">
-              <ShieldAlert className="h-2.5 w-2.5" /> 王炸
+            <span className="inline-flex items-center gap-0.5 rounded bg-rose-600/50 px-1.5 py-0.5 text-[10px] font-black text-rose-100">
+              <ShieldAlert className="h-3 w-3" /> 王炸
             </span>
           )}
 
@@ -94,41 +106,44 @@ export const CardCounterBar: React.FC = () => {
             <button
               type="button"
               onClick={() => setCollapsed((c) => !c)}
-              className="ml-0.5 inline-flex items-center gap-0.5 rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5 text-[10px] font-bold text-amber-200/90 hover:bg-white/15 cursor-pointer"
+              className="ml-0.5 inline-flex items-center gap-0.5 rounded-md border border-white/15 bg-white/10 px-2 py-0.5 text-[11px] font-bold text-amber-200 hover:bg-white/20 cursor-pointer"
               title={collapsed ? '展开记牌器' : '收起记牌器'}
             >
               {collapsed ? (
                 <>
-                  <span className="text-[9px]">牌数</span>
-                  <ChevronDown className="h-3 w-3" />
+                  <span>展开</span>
+                  <ChevronDown className="h-3.5 w-3.5" />
                 </>
               ) : (
-                <ChevronUp className="h-3 w-3" />
+                <>
+                  <span className="short-h:inline hidden">收起</span>
+                  <ChevronUp className="h-3.5 w-3.5" />
+                </>
               )}
             </button>
           )}
         </div>
 
-        {/* Desktop inline rank bar (hidden on short mobile landscape — rendered as floating overlay below instead) */}
+        {/* Desktop inline rank bar */}
         {!collapsed && mode === 'off' && (
-          <div className="short-h-hide flex items-center gap-1 text-[10px] text-emerald-200/60">
-            <EyeOff className="h-3 w-3" /> 记牌器已关闭
+          <div className="short-h-hide flex items-center gap-1 text-[11px] text-emerald-200/65">
+            <EyeOff className="h-3.5 w-3.5" /> 记牌器已关闭
           </div>
         )}
 
         {!collapsed && mode === 'blind' && (
-          <div className="short-h-hide flex items-center gap-2 text-[10px]">
+          <div className="short-h-hide flex items-center gap-2 text-[11px]">
             <span className="inline-flex items-center gap-1 text-amber-200">
-              <Eye className="h-3 w-3 text-amber-300" />
+              <Eye className="h-3.5 w-3.5 text-amber-300" />
               盲记抽测 (+500金币)
             </span>
             {phase === 'PLAYING' && (
               <button
                 type="button"
                 onClick={triggerManualBlindQuiz}
-                className="inline-flex items-center gap-1 rounded-md border border-amber-400/45 bg-amber-500/20 px-1.5 py-0.5 font-bold text-amber-200 hover:bg-amber-500/30 cursor-pointer"
+                className="inline-flex items-center gap-1 rounded-md border border-amber-400/45 bg-amber-500/20 px-2 py-0.5 font-bold text-amber-200 hover:bg-amber-500/30 cursor-pointer"
               >
-                <HelpCircle className="h-3 w-3" /> 自测
+                <HelpCircle className="h-3.5 w-3.5" /> 自测
               </button>
             )}
           </div>
@@ -144,21 +159,21 @@ export const CardCounterBar: React.FC = () => {
               return (
                 <div
                   key={r}
-                  className={`flex min-w-[22px] flex-col items-center rounded border px-0.5 py-0.2 leading-tight ${
+                  className={`flex min-w-[24px] flex-col items-center rounded border px-1 py-0.5 leading-tight ${
                     count === 0
-                      ? 'border-white/5 bg-white/5 opacity-30'
+                      ? 'border-white/5 bg-white/5 opacity-35'
                       : isBombThreat
-                        ? 'border-rose-400/70 bg-rose-500/25 text-rose-200'
-                        : 'border-amber-400/25 bg-emerald-950/80 text-amber-100'
+                        ? 'border-rose-400/70 bg-rose-500/25 text-rose-100'
+                        : 'border-amber-400/30 bg-emerald-950/85 text-amber-100'
                   }`}
                 >
-                  <span className="text-[9px] font-bold">{shortLabel}</span>
-                  <span className="font-mono text-[10px] font-black">{count}</span>
+                  <span className="text-[10px] font-bold">{shortLabel}</span>
+                  <span className="font-mono text-[11px] font-black">{count}</span>
                 </div>
               );
             })}
             {jokerAlert && (
-              <span className="ml-0.5 inline-flex items-center gap-0.5 rounded bg-rose-600/40 px-1.5 py-0.5 text-[9px] font-black text-rose-200">
+              <span className="ml-0.5 inline-flex items-center gap-0.5 rounded bg-rose-600/45 px-1.5 py-0.5 text-[10px] font-black text-rose-100">
                 <ShieldAlert className="h-3 w-3" /> 王炸
               </span>
             )}
@@ -166,19 +181,19 @@ export const CardCounterBar: React.FC = () => {
         )}
       </div>
 
-      {/* Mobile Landscape Floating Popover (only when expanded at max-height: 540px so header never pushes hand offscreen) */}
+      {/* Mobile / Forced Landscape Floating Popover */}
       {!collapsed && mode !== 'off' && (
-        <div className="hidden [@media(max-height:540px)]:flex hud-glass absolute top-full mt-1 z-30 items-center gap-1 rounded-xl px-2 py-1 shadow-2xl whitespace-nowrap">
+        <div className="hidden short-h:flex hud-glass absolute top-full mt-1 z-30 items-center gap-1 rounded-xl px-2.5 py-1.5 shadow-2xl whitespace-nowrap">
           {mode === 'blind' ? (
-            <div className="flex items-center gap-2 text-[10px]">
+            <div className="flex items-center gap-2 text-xs">
               <span className="text-amber-200">盲记抽测中 (+500金币)</span>
               {phase === 'PLAYING' && (
                 <button
                   type="button"
                   onClick={triggerManualBlindQuiz}
-                  className="rounded-md bg-amber-400 px-2 py-0.5 font-black text-emerald-950 cursor-pointer"
+                  className="inline-flex items-center gap-1 rounded-md bg-amber-400 px-2 py-0.5 font-black text-emerald-950 cursor-pointer"
                 >
-                  自测
+                  <HelpCircle className="h-3.5 w-3.5" /> 自测
                 </button>
               )}
             </div>
@@ -191,16 +206,16 @@ export const CardCounterBar: React.FC = () => {
               return (
                 <div
                   key={r}
-                  className={`flex min-w-[19px] flex-col items-center rounded border px-0.5 leading-tight ${
+                  className={`flex min-w-[21px] flex-col items-center rounded border px-0.5 py-0.5 leading-tight ${
                     count === 0
-                      ? 'border-white/5 bg-white/5 opacity-30'
+                      ? 'border-white/5 bg-white/5 opacity-35'
                       : isBombThreat
-                        ? 'border-rose-400/70 bg-rose-500/25 text-rose-200'
-                        : 'border-amber-400/25 bg-emerald-950/80 text-amber-100'
+                        ? 'border-rose-400/70 bg-rose-500/25 text-rose-100'
+                        : 'border-amber-400/30 bg-emerald-950/85 text-amber-100'
                   }`}
                 >
-                  <span className="text-[8px] font-bold">{shortLabel}</span>
-                  <span className="font-mono text-[9px] font-black">{count}</span>
+                  <span className="text-[9px] font-bold">{shortLabel}</span>
+                  <span className="font-mono text-[10px] font-black">{count}</span>
                 </div>
               );
             })

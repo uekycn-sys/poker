@@ -4,6 +4,7 @@ import { ArrowLeft, CheckCircle2, Coins, Home, Play, Puzzle, Star } from 'lucide
 import { ENDGAME_PUZZLES } from '../engine';
 import { useDoudizhuProfileStore } from '../store/doudizhuProfileStore';
 import { useDoudizhuGameStore } from '../store/doudizhuGameStore';
+import { RoleBadge } from './RoleIcons';
 
 interface PuzzleLobbyProps {
   onExitToLobby: () => void;
@@ -15,7 +16,7 @@ export const PuzzleLobby: React.FC<PuzzleLobbyProps> = ({ onExitToLobby }) => {
   const startPuzzle = useDoudizhuGameStore((s) => s.startPuzzle);
 
   return (
-    <div className="felt-table min-h-screen w-full px-4 py-6 md:px-10 md:py-8">
+    <div className="felt-table safe-area-pad h-full w-full overflow-y-auto overflow-x-hidden px-4 py-5 md:px-10 md:py-7">
       <div className="mx-auto max-w-5xl space-y-6">
         <header className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-amber-400/30 bg-black/35 px-6 py-4 backdrop-blur-md shadow-2xl">
           <div className="flex flex-wrap items-center gap-3">
@@ -84,15 +85,7 @@ export const PuzzleLobby: React.FC<PuzzleLobbyProps> = ({ onExitToLobby }) => {
                   </div>
 
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                        puzzle.landlordSeat === 0
-                          ? 'bg-amber-400/20 text-amber-300'
-                          : 'bg-emerald-500/20 text-emerald-300'
-                      }`}
-                    >
-                      {puzzle.landlordSeat === 0 ? '执地主' : '执农民'}
-                    </span>
+                    <RoleBadge role={puzzle.landlordSeat === 0 ? 'landlord' : 'farmer'} size="sm" />
                     <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-emerald-100">
                       {puzzle.tag}
                     </span>

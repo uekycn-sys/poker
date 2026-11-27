@@ -7,13 +7,14 @@ import {
   Coins,
   Flame,
   History,
+  Megaphone,
+  MicOff,
   Play,
   Puzzle,
   Sparkles,
   Volume2,
   VolumeX,
-  MessageSquare,
-  MessageSquareOff,
+  ZoomIn,
 } from 'lucide-react';
 import { AIDifficulty } from '../engine';
 import { FullscreenButton } from '../../../shared/components';
@@ -47,8 +48,10 @@ export const DoudizhuHub: React.FC<DoudizhuHubProps> = ({ onExitToLobby }) => {
   const doudizhuStats = usePlayerStore((s) => s.perGameStats.doudizhu);
   const sfxEnabled = usePlayerStore((s) => s.sfxEnabled);
   const voiceEnabled = usePlayerStore((s) => s.voiceEnabled);
+  const largeCardFont = usePlayerStore((s) => s.largeCardFont);
   const toggleSfx = usePlayerStore((s) => s.toggleSfx);
   const toggleVoice = usePlayerStore((s) => s.toggleVoice);
+  const toggleLargeCardFont = usePlayerStore((s) => s.toggleLargeCardFont);
 
   const springCount = useDoudizhuProfileStore((s) => s.springCount);
   const antiSpringCount = useDoudizhuProfileStore((s) => s.antiSpringCount);
@@ -72,7 +75,7 @@ export const DoudizhuHub: React.FC<DoudizhuHubProps> = ({ onExitToLobby }) => {
     totalMatches > 0 ? Math.round(((springCount + antiSpringCount) / totalMatches) * 100) : 0;
 
   return (
-    <div className="casino-room-bg safe-area-pad min-h-[100dvh] w-full px-4 py-4 sm:py-6 md:px-10">
+    <div className="casino-room-bg safe-area-pad h-full w-full overflow-y-auto overflow-x-hidden px-4 py-4 sm:py-6 md:px-10">
       <div className="mx-auto max-w-5xl space-y-5">
         <header className="hud-glass flex flex-wrap items-center justify-between gap-3 rounded-3xl px-5 py-3.5">
           <div className="flex flex-wrap items-center gap-3.5">
@@ -112,13 +115,25 @@ export const DoudizhuHub: React.FC<DoudizhuHubProps> = ({ onExitToLobby }) => {
               className="flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-bold text-amber-100 hover:bg-white/10 cursor-pointer"
             >
               {voiceEnabled ? (
-                <MessageSquare className="h-4 w-4 text-emerald-300" />
+                <Megaphone className="h-4 w-4 text-emerald-300" />
               ) : (
-                <MessageSquareOff className="h-4 w-4 text-slate-400" />
+                <MicOff className="h-4 w-4 text-slate-400" />
               )}
-              中文配音
+              语音
             </button>
-            <FullscreenButton />
+            <button
+              type="button"
+              onClick={toggleLargeCardFont}
+              className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold cursor-pointer ${
+                largeCardFont
+                  ? 'border-amber-300/70 bg-amber-400/20 text-amber-200'
+                  : 'border-white/15 bg-white/5 text-amber-100 hover:bg-white/10'
+              }`}
+            >
+              <ZoomIn className="h-4 w-4 text-amber-300" />
+              大字
+            </button>
+            <FullscreenButton showLabel />
           </div>
         </header>
 

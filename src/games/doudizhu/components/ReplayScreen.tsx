@@ -16,6 +16,7 @@ import { PlayingCard } from '../../../shared/cards/PlayingCard';
 import { ReplayTimeline, TimelineMarker } from '../../../shared/components/ReplayTimeline';
 import { SavedMatchRecord, useDoudizhuProfileStore } from '../store/doudizhuProfileStore';
 import { useDoudizhuGameStore } from '../store/doudizhuGameStore';
+import { RoleBadge, RoleEmblemIcon } from './RoleIcons';
 
 function reconstructStateAtStep(record: SavedMatchRecord, stepIndex: number): GameState {
   const base = createInitialGameState(record.baseScore);
@@ -171,7 +172,7 @@ export const ReplayScreen: React.FC<ReplayScreenProps> = ({ onExitToLobby }) => 
 
   if (!activeRecord || !stepState) {
     return (
-      <div className="felt-table flex min-h-screen flex-col items-center justify-center p-6 text-center">
+      <div className="felt-table safe-area-pad flex h-full w-full flex-col items-center justify-center overflow-y-auto p-6 text-center">
         <History className="h-12 w-12 text-amber-300/70" />
         <h2 className="mt-3 text-xl font-black text-amber-100">暂无保存的对局牌谱</h2>
         <p className="mt-1 text-xs text-emerald-200/75">
@@ -202,7 +203,7 @@ export const ReplayScreen: React.FC<ReplayScreenProps> = ({ onExitToLobby }) => 
   const resumeIndex = Math.min(stepIndex, Math.max(0, totalSteps - 1));
 
   return (
-    <div className="felt-table min-h-screen w-full px-4 py-5 md:px-8">
+    <div className="felt-table safe-area-pad h-full w-full overflow-y-auto overflow-x-hidden px-4 py-5 md:px-8">
       <div className="mx-auto max-w-6xl space-y-4">
         <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-400/30 bg-black/35 px-5 py-3 backdrop-blur-md">
           <div className="flex flex-wrap items-center gap-2.5">
@@ -258,15 +259,17 @@ export const ReplayScreen: React.FC<ReplayScreenProps> = ({ onExitToLobby }) => 
           <div className="space-y-4 lg:col-span-2">
             <div className="rounded-2xl border border-amber-400/20 bg-black/35 px-4 py-2.5">
               <div className="flex justify-between text-xs font-bold">
-                <span className="text-amber-300">
+                <span className="inline-flex items-center gap-1 text-amber-300">
+                  <RoleEmblemIcon role="landlord" className="h-3.5 w-3.5" />
                   地主胜率 {Math.round(stepWinRate.landlordWinRate)}%
                 </span>
                 <span className="text-emerald-200/80">
                   第 {stepIndex} / {totalSteps} 手
                   {activeMove ? ` · 即将由 ${SEAT_LABELS[activeMove.seat]} 决策` : ' · 对局结束'}
                 </span>
-                <span className="text-emerald-300">
+                <span className="inline-flex items-center gap-1 text-emerald-300">
                   农民胜率 {Math.round(stepWinRate.farmerWinRate)}%
+                  <RoleEmblemIcon role="farmer" className="h-3.5 w-3.5" />
                 </span>
               </div>
               <div className="mt-1.5 flex h-2.5 overflow-hidden rounded-full bg-emerald-900">
@@ -292,15 +295,12 @@ export const ReplayScreen: React.FC<ReplayScreenProps> = ({ onExitToLobby }) => 
                   >
                     <div className="mb-2 flex items-center justify-between text-xs">
                       <span className="font-bold text-amber-100">{SEAT_LABELS[seat]}</span>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                          isLandlord
-                            ? 'bg-amber-400/20 text-amber-300'
-                            : 'bg-emerald-500/20 text-emerald-300'
-                        }`}
-                      >
-                        {isLandlord ? '地主' : '农民'} · {stepState.hands[seat].length} 张
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <RoleBadge role={isLandlord ? 'landlord' : 'farmer'} size="sm" />
+                        <span className="font-mono text-xs font-bold text-amber-200">
+                          {stepState.hands[seat].length} 张
+                        </span>
+                      </div>
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {stepState.hands[seat].map((c) => (
@@ -333,9 +333,10 @@ export const ReplayScreen: React.FC<ReplayScreenProps> = ({ onExitToLobby }) => 
 
               <div className="mt-4 border-t border-white/10 pt-3">
                 <div className="mb-2 flex items-center justify-between text-xs">
-                  <span className="font-bold text-amber-100">
-                    {SEAT_LABELS[0]} ({activeRecord.landlordSeat === 0 ? '地主' : '农民'}) ·{' '}
-                    {stepState.hands[0].length} 张
+                  <span className="inline-flex items-center gap-1.5 font-bold text-amber-100">
+                    {SEAT_LABELS[0]}
+                    <RoleBadge role={activeRecord.landlordSeat === 0 ? 'landlord' : 'farmer'} size="sm" />
+                    <span>· {stepState.hands[0].length} 张</span>
                   </span>
                   {activeMove && activeMove.seat === 0 && (
                     <span className="rounded bg-sky-500/20 px-2 py-0.5 text-[11px] font-bold text-sky-200">

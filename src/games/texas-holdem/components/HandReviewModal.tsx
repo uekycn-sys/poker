@@ -375,8 +375,8 @@ export const HandReviewModal: React.FC<HandReviewModalProps> = ({
   onClose,
 }) => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-      <div className="gold-card-border max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl border bg-[#051811] p-5 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 sm:p-4 backdrop-blur-sm">
+      <div className="gold-card-border max-h-[94%] w-full max-w-3xl overflow-y-auto rounded-2xl sm:rounded-3xl border bg-[#051811] p-4 sm:p-5 shadow-2xl">
         <HandReviewContent
           review={review}
           handState={handState}
@@ -412,7 +412,7 @@ export const HoldemReplayScreen: React.FC<HoldemReplayScreenProps> = ({
     hands.find((h) => h.id === selectedHandId) ?? hands[0] ?? null;
 
   return (
-    <div className="club-bg min-h-screen w-full px-4 py-6 md:px-8">
+    <div className="club-bg safe-area-pad h-full w-full overflow-y-auto overflow-x-hidden px-4 py-5 md:px-8">
       <div className="mx-auto max-w-6xl space-y-5">
         <header className="gold-card-border flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-black/45 px-5 py-3.5 backdrop-blur-md">
           <div className="flex items-center gap-3">

@@ -12,28 +12,28 @@ export const BlindQuizModal: React.FC = () => {
   return (
     <AnimatePresence>
       {quiz && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-2 sm:p-4 backdrop-blur-sm">
           <motion.div
-            initial={{ opacity: 0, scale: 0.88, y: 16 }}
+            initial={{ opacity: 0, scale: 0.9, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="w-full max-w-md rounded-3xl border border-amber-300/60 bg-gradient-to-b from-emerald-950 via-[#07261b] to-[#041810] p-6 shadow-2xl"
+            className="max-h-[94%] w-full max-w-lg overflow-y-auto rounded-2xl sm:rounded-3xl border border-amber-300/60 bg-gradient-to-b from-emerald-950 via-[#07261b] to-[#041810] p-4 sm:p-6 shadow-2xl"
           >
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/20 px-3 py-1 text-xs font-black text-amber-300">
                 <Brain className="h-4 w-4" /> 盲记抽测训练
               </span>
               <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-300">
-                <Coins className="h-3.5 w-3.5" /> 答对 +{quiz.rewardBeans} 金币
+                <Coins className="h-4 w-4" /> 答对 +{quiz.rewardBeans} 金币
               </span>
             </div>
 
-            <h3 className="mt-4 text-lg font-black text-amber-50">{quiz.prompt}</h3>
-            <p className="mt-1 text-xs text-emerald-200/70">
+            <h3 className="mt-3 text-base sm:text-lg font-black text-amber-50">{quiz.prompt}</h3>
+            <p className="mt-0.5 text-xs text-emerald-200/75">
               不包含你手中的牌，请回忆前面已经打出的牌张！
             </p>
 
-            <div className="mt-4 grid grid-cols-1 gap-2.5">
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 forced-l:grid-cols-2 gap-2">
               {quiz.options.map((opt) => {
                 const isSelected = feedback?.selected === opt;
                 const isCorrectOpt = opt === quiz.correctText;
@@ -53,7 +53,7 @@ export const BlindQuizModal: React.FC = () => {
                     type="button"
                     disabled={Boolean(feedback)}
                     onClick={() => answerBlindQuiz(opt)}
-                    className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-sm font-bold transition cursor-pointer ${cls}`}
+                    className={`flex items-center justify-between rounded-2xl border px-3.5 py-2.5 text-sm font-bold transition cursor-pointer ${cls}`}
                   >
                     <span>{opt}</span>
                     {feedback && isCorrectOpt && <CheckCircle2 className="h-4 w-4 text-emerald-300" />}
@@ -66,9 +66,9 @@ export const BlindQuizModal: React.FC = () => {
             </div>
 
             {feedback && (
-              <div className="mt-4 space-y-3">
+              <div className="mt-3 space-y-2.5">
                 <div
-                  className={`rounded-xl p-3 text-xs font-bold ${
+                  className={`rounded-xl p-2.5 text-xs font-bold ${
                     feedback.isCorrect
                       ? 'bg-emerald-500/20 text-emerald-200'
                       : 'bg-rose-500/20 text-rose-200'
@@ -81,7 +81,7 @@ export const BlindQuizModal: React.FC = () => {
                 <button
                   type="button"
                   onClick={dismissBlindQuiz}
-                  className="w-full rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 py-2.5 text-sm font-black text-emerald-950 shadow-lg hover:brightness-105 cursor-pointer"
+                  className="game-btn-gold w-full rounded-xl py-2.5 text-sm font-black cursor-pointer"
                 >
                   继续对局
                 </button>

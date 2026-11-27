@@ -8,6 +8,7 @@ import {
   Sparkles,
   Target,
   Users,
+  ZoomIn,
 } from 'lucide-react';
 import { ChipBalancePill, FullscreenButton, PlayerAvatar, usePlayerStore } from '../../../shared';
 import { AI_PERSONAS } from '../ai/personas';
@@ -27,6 +28,8 @@ const STAKES = [
 export const HoldemHub: React.FC<HoldemHubProps> = ({ onExitToLobby }) => {
   const chips = usePlayerStore((s) => s.chips);
   const lastChipDelta = usePlayerStore((s) => s.lastChipDelta);
+  const largeCardFont = usePlayerStore((s) => s.largeCardFont);
+  const toggleLargeCardFont = usePlayerStore((s) => s.toggleLargeCardFont);
 
   const selectedStake = useHoldemProfileStore((s) => s.selectedStake);
   const outsQuizEnabled = useHoldemProfileStore((s) => s.outsQuizEnabled);
@@ -42,7 +45,7 @@ export const HoldemHub: React.FC<HoldemHubProps> = ({ onExitToLobby }) => {
   const openReplayScreen = useHoldemGameStore((s) => s.openReplayScreen);
 
   return (
-    <div className="casino-room-bg safe-area-pad min-h-[100dvh] w-full px-4 py-4 sm:py-6 md:px-10">
+    <div className="casino-room-bg safe-area-pad h-full w-full overflow-y-auto overflow-x-hidden px-4 py-4 sm:py-6 md:px-10">
       <div className="mx-auto max-w-6xl space-y-5">
         {/* Top Bar */}
         <header className="hud-glass flex flex-wrap items-center justify-between gap-3 rounded-3xl px-5 py-3.5">
@@ -66,7 +69,19 @@ export const HoldemHub: React.FC<HoldemHubProps> = ({ onExitToLobby }) => {
 
           <div className="flex items-center gap-2">
             <ChipBalancePill chips={chips} lastDelta={lastChipDelta} label="俱乐部资产" />
-            <FullscreenButton />
+            <button
+              type="button"
+              onClick={toggleLargeCardFont}
+              className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold cursor-pointer ${
+                largeCardFont
+                  ? 'border-amber-300/70 bg-amber-400/20 text-amber-200'
+                  : 'border-white/15 bg-white/5 text-amber-100 hover:bg-white/10'
+              }`}
+            >
+              <ZoomIn className="h-4 w-4 text-amber-300" />
+              大字
+            </button>
+            <FullscreenButton showLabel />
           </div>
         </header>
 

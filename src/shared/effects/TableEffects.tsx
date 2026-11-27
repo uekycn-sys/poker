@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { getStageViewport } from '../hooks/useStageViewport';
 
 export type FxKind =
   | 'BOMB'
@@ -112,8 +113,9 @@ export const TableEffects: React.FC<TableEffectsProps> = ({ fx, onComplete }) =>
     if (!canvas) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const w = window.innerWidth;
-    const h = window.innerHeight;
+    const stage = getStageViewport();
+    const w = canvas.clientWidth || stage.width;
+    const h = canvas.clientHeight || stage.height;
     canvas.width = w * dpr;
     canvas.height = h * dpr;
     const ctx = canvas.getContext('2d');

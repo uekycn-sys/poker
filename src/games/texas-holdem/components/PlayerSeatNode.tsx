@@ -20,6 +20,7 @@ interface PlayerSeatNodeProps {
   humanAvatarId: AvatarStyleId;
   handEvalLabel?: string;
   betAlign?: 'top' | 'bottom' | 'left' | 'right';
+  largeFont?: boolean;
 }
 
 const STYLE_BADGE_COLORS: Record<string, string> = {
@@ -33,7 +34,7 @@ const STYLE_BADGE_COLORS: Record<string, string> = {
 const BET_ALIGN_CLASSES: Record<NonNullable<PlayerSeatNodeProps['betAlign']>, string> = {
   top: '-top-6 left-1/2 -translate-x-1/2',
   bottom:
-    '-bottom-6 left-1/2 -translate-x-1/2 [@media(max-height:540px)]:bottom-auto [@media(max-height:540px)]:top-1/2 [@media(max-height:540px)]:left-full [@media(max-height:540px)]:translate-x-1.5 [@media(max-height:540px)]:-translate-y-1/2',
+    '-bottom-6 left-1/2 -translate-x-1/2 short-h:bottom-auto short-h:top-1/2 short-h:left-full short-h:translate-x-1.5 short-h:-translate-y-1/2',
   left: 'top-1/2 -left-16 -translate-y-1/2',
   right: 'top-1/2 -right-16 -translate-y-1/2',
 };
@@ -51,6 +52,7 @@ export const PlayerSeatNode: React.FC<PlayerSeatNodeProps> = ({
   humanAvatarId,
   handEvalLabel,
   betAlign = 'bottom',
+  largeFont = false,
 }) => {
   const revealCards = player.isHuman || (isShowdown && !player.folded);
   const vpip = getVpipPct(hudStat);
@@ -80,12 +82,12 @@ export const PlayerSeatNode: React.FC<PlayerSeatNodeProps> = ({
         <div
           className={`flex items-center justify-center ${
             player.isHuman || player.seat === 3
-              ? 'mb-1 [@media(max-height:540px)]:mb-0'
-              : 'mb-1 [@media(max-height:540px)]:mb-0.5'
+              ? 'mb-1 short-h:mb-0'
+              : 'mb-1 short-h:mb-0.5'
           }`}
         >
           {player.isHuman ? (
-            <div className="group relative flex items-end -space-x-2.5 pt-1 [@media(max-height:540px)]:pt-0">
+            <div className="group relative flex items-end -space-x-2.5 pt-1 short-h:pt-0">
               {player.holeCards.map((card, idx) => {
                 const isWinCard = isShowdown && winningCardIds.has(card.id);
                 return (
@@ -101,7 +103,7 @@ export const PlayerSeatNode: React.FC<PlayerSeatNodeProps> = ({
                         : ''
                     }`}
                   >
-                    <PlayingCard card={card} size="md" selected={isWinCard} />
+                    <PlayingCard card={card} size="md" selected={isWinCard} largeFont={largeFont} />
                     <span className="pointer-events-none absolute right-0 top-0 h-4 w-4 rounded-bl-lg bg-gradient-to-bl from-amber-200/70 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
                   </div>
                 );
@@ -113,7 +115,7 @@ export const PlayerSeatNode: React.FC<PlayerSeatNodeProps> = ({
               )}
             </div>
           ) : (
-            <div className="flex -space-x-2 [@media(max-height:540px)]:-space-x-1.5">
+            <div className="flex -space-x-2 short-h:-space-x-1.5">
               {player.holeCards.map((card, idx) => {
                 const isWinCard = isShowdown && winningCardIds.has(card.id);
                 return (
@@ -132,6 +134,7 @@ export const PlayerSeatNode: React.FC<PlayerSeatNodeProps> = ({
                       faceDown={!revealCards}
                       size={revealCards ? 'sm' : 'xs'}
                       selected={isWinCard}
+                      largeFont={largeFont}
                     />
                   </div>
                 );
@@ -143,7 +146,7 @@ export const PlayerSeatNode: React.FC<PlayerSeatNodeProps> = ({
         {/* Commercial VIP Curved Seat Plate */}
         <motion.div
           animate={isActive ? { scale: 1.04 } : { scale: 1 }}
-          className={`relative flex min-w-[114px] sm:min-w-[140px] [@media(max-height:540px)]:min-w-[106px] items-center gap-1.5 sm:gap-2 rounded-2xl border px-2 py-1 sm:px-2.5 sm:py-1.5 [@media(max-height:540px)]:py-0.5 shadow-[0_10px_24px_rgba(0,0,0,0.75)] backdrop-blur-md ${
+          className={`relative flex min-w-[114px] sm:min-w-[140px] short-h:min-w-[106px] items-center gap-1.5 sm:gap-2 rounded-2xl border px-2 py-1 sm:px-2.5 sm:py-1.5 short-h:py-0.5 shadow-[0_10px_24px_rgba(0,0,0,0.75)] backdrop-blur-md ${
             isWinner
               ? 'border-amber-300 bg-gradient-to-r from-amber-500/30 via-[#08251a]/95 to-amber-500/25 ring-2 ring-amber-300/80'
               : isActive
@@ -169,7 +172,7 @@ export const PlayerSeatNode: React.FC<PlayerSeatNodeProps> = ({
           <PlayerAvatar
             avatarId={player.isHuman ? humanAvatarId : persona?.avatarId ?? 'spade'}
             size="sm"
-            className="[@media(max-height:540px)]:h-7 [@media(max-height:540px)]:w-7"
+            className="short-h:h-7 short-h:w-7"
           />
 
           <div className="min-w-0 flex-1">

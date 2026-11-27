@@ -5,6 +5,7 @@ import {
   soundEngine,
   speechEngine,
   usePlayerStore,
+  useStageViewport,
 } from './shared';
 import { GameLaunchOptions, getGameById } from './games';
 import { Lobby } from './pages/Lobby';
@@ -19,8 +20,10 @@ function parseHashGameId(): string | null {
 }
 
 export function App() {
+  useStageViewport();
   const sfxEnabled = usePlayerStore((s) => s.sfxEnabled);
   const voiceEnabled = usePlayerStore((s) => s.voiceEnabled);
+  const largeCardFont = usePlayerStore((s) => s.largeCardFont);
 
   const [activeGameId, setActiveGameId] = useState<string | null>(() => parseHashGameId());
   const [launchOptions, setLaunchOptions] = useState<GameLaunchOptions | undefined>(undefined);
@@ -29,6 +32,15 @@ export function App() {
     soundEngine.setEnabled(sfxEnabled);
     speechEngine.setEnabled(voiceEnabled);
   }, [sfxEnabled, voiceEnabled]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (largeCardFont) {
+      document.documentElement.dataset.elderMode = 'true';
+    } else {
+      delete document.documentElement.dataset.elderMode;
+    }
+  }, [largeCardFont]);
 
   useEffect(() => {
     const onHashChange = () => {
@@ -61,7 +73,7 @@ export function App() {
     activeGame && activeGame.status === 'available' ? activeGame.component : undefined;
 
   return (
-    <>
+    <div id="app-stage">
       {ActiveComponent ? (
         <ActiveComponent onExitToLobby={handleExitToLobby} launchOptions={launchOptions} />
       ) : (
@@ -69,7 +81,7 @@ export function App() {
       )}
       <BankruptcyAidModal />
       <LandscapeHintOverlay />
-    </>
+    </div>
   );
 }
 

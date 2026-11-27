@@ -404,7 +404,7 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
 
   const isJoker = card.suit === 'joker';
   const isRed = card.suit === 'hearts' || card.suit === 'diamonds' || card.rank === 17;
-  const colorCls = isRed ? 'text-rose-600' : 'text-slate-900';
+  const colorCls = isRed ? 'text-[#d90429]' : 'text-[#09090b]';
   const label = getCornerRankLabel(card.rank);
   const showRoyalArt =
     isJoker ||
@@ -426,7 +426,7 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
           : null;
 
   const borderGlow = selected
-    ? 'ring-2 ring-amber-400 border-amber-400 shadow-[0_3px_0_rgba(180,83,9,0.7),0_16px_28px_rgba(245,158,11,0.42)]'
+    ? 'ring-2 ring-amber-400 border-amber-400 shadow-[0_3px_0_rgba(180,83,9,0.75),0_14px_26px_rgba(245,158,11,0.5)]'
     : dragPreview
       ? 'ring-2 ring-sky-400 border-sky-300 shadow-[0_2px_0_rgba(14,116,144,0.6),0_12px_22px_rgba(56,189,248,0.35)]'
       : coachRecommended
@@ -439,10 +439,25 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
     size === 'xs'
       ? 'text-[10px]'
       : size === 'sm'
-        ? 'text-[11px] leading-none'
+        ? largeFont
+          ? 'text-xs leading-none'
+          : 'text-[11px] leading-none'
+        : size === 'md'
+          ? largeFont
+            ? 'text-base leading-none'
+            : 'text-[13px] sm:text-sm leading-none'
+          : largeFont
+            ? 'text-lg sm:text-xl leading-none'
+            : 'text-[14px] sm:text-[15px] leading-none';
+
+  const jokerCornerTextSize =
+    size === 'xs'
+      ? 'text-[8px]'
+      : size === 'sm'
+        ? 'text-[9px]'
         : largeFont
-          ? 'text-base sm:text-lg'
-          : 'text-[13px] sm:text-sm md:text-[15px]';
+          ? 'text-[11px] sm:text-xs'
+          : 'text-[10px] sm:text-[11px]';
 
   return (
     <div
@@ -483,8 +498,8 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
       {/* Top-left rank & suit */}
       <div className={`absolute left-1 top-1 flex flex-col items-center leading-none ${colorCls}`}>
         {isJoker ? (
-          <div className="flex flex-col items-center text-[7px] sm:text-[8px] font-black tracking-tighter leading-[0.92]">
-            {'JOKER'.split('').map((ch, idx) => (
+          <div className={`flex flex-col items-center ${jokerCornerTextSize} font-black leading-[1.05]`}>
+            {(card.rank === 17 ? ['大', '王'] : ['小', '王']).map((ch, idx) => (
               <span key={idx}>{ch}</span>
             ))}
           </div>
