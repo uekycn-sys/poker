@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+:root {
+  --table-emerald-core: #0d4a35;
+  --table-emerald-deep: #051e15;
+  --table-gold: #d4af37;
+  --table-gold-bright: #f7d774;
+}
+
+body {
+  margin: 0;
+  font-family: "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+  background: radial-gradient(circle at 50% 42%, var(--table-emerald-core) 0%, var(--table-emerald-deep) 80%);
+  min-height: 100vh;
+}
+
+.felt-table {
+  background-color: var(--table-emerald-deep);
+  background-image:
+    radial-gradient(ellipse at 50% 42%, rgba(20, 108, 76, 0.88) 0%, rgba(7, 42, 30, 0.94) 58%, rgba(4, 21, 15, 1) 100%),
+    repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.012) 0px,
+      rgba(255, 255, 255, 0.012) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+}
+
+@keyframes tableShake {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  15% { transform: translate3d(-6px, 4px, 0); }
+  30% { transform: translate3d(6px, -4px, 0); }
+  45% { transform: translate3d(-5px, -3px, 0); }
+  60% { transform: translate3d(4px, 3px, 0); }
+  75% { transform: translate3d(-2px, 1px, 0); }
+}
+
+.table-shake {
+  animation: tableShake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes sirenPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.8);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 14px 4px rgba(244, 63, 94, 0.9);
+    transform: scale(1.06);
+  }
+}
+
+.siren-pulse {
+  animation: sirenPulse 1s ease-in-out infinite;
+}
