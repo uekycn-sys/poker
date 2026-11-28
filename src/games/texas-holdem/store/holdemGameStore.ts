@@ -2,7 +2,12 @@ import { create } from 'zustand';
 import { soundEngine } from '../../../shared/audio/soundEngine';
 import { TableFxEvent } from '../../../shared/effects/TableEffects';
 import { usePlayerStore } from '../../../shared/store/playerStore';
-import { requestAiDecision, requestCoachAnalysis } from '../ai/aiClient';
+import { isWorkerCancelledError } from '../../../shared/workers/resilientWorker';
+import {
+  cancelHoldemAIRequests,
+  requestAiDecision,
+  requestCoachAnalysis,
+} from '../ai/aiClient';
 import {
   buildHandReviewReport,
   CoachAnalysis,
@@ -287,8 +292,8 @@ export const useHoldemGameStore = create<HoldemGameStoreState>((set, get) => {
           ? [...alreadyQuizzed, street]
           : alreadyQuizzed,
       });
-    } catch {
-      if (turnToken === myToken) {
+    } catch (err) {
+      if (turnToken === myToken && !isWorkerCancelledError(err)) {
         set({ coachLoading: false });
       }
     }
@@ -320,7 +325,13 @@ export const useHoldemGameStore = create<HoldemGameStoreState>((set, get) => {
         if (!latest || latest.isHandOver || latest.activeSeat !== activeSeat) return;
 
         const persona = AI_PERSONAS_BY_SEAT[activeSeat] ?? AI_PERSONAS[0];
-        const decision = await requestAiDecision(latest, activeSeat, persona, 1000);
+        let decision;
+        try {
+          decision = await requestAiDecision(latest, activeSeat, persona, 1000);
+        } catch (err) {
+          if (isWorkerCancelledError(err)) return;
+          throw err;
+        }
         if (turnToken !== myToken) return;
 
         const nextState = applyAction(latest, activeSeat, decision.action);
@@ -371,17 +382,20 @@ export const useHoldemGameStore = create<HoldemGameStoreState>((set, get) => {
     openHub: () => {
       turnToken++;
       clearPendingTimers();
-      set({ screen: 'hub', showReviewModal: false, outsQuiz: null });
+      cancelHoldemAIRequests();
+      set({ screen: 'hub', coachLoading: false, showReviewModal: false, outsQuiz: null });
     },
 
     openReplayScreen: (handId) => {
       turnToken++;
       clearPendingTimers();
+      cancelHoldemAIRequests();
       const recent = useHoldemProfileStore.getState().recentHands;
       const targetId = handId ?? recent[0]?.id ?? null;
       set({
         screen: 'replay',
         selectedReplayHandId: targetId,
+        coachLoading: false,
         showReviewModal: false,
       });
     },
@@ -391,6 +405,7 @@ export const useHoldemGameStore = create<HoldemGameStoreState>((set, get) => {
     startTable: (bigBlindArg) => {
       turnToken++;
       clearPendingTimers();
+      cancelHoldemAIRequests();
       const myToken = turnToken;
 
       const bb = bigBlindArg ?? useHoldemProfileStore.getState().selectedStake ?? 100;
@@ -451,6 +466,7 @@ export const useHoldemGameStore = create<HoldemGameStoreState>((set, get) => {
     startNextHand: () => {
       turnToken++;
       clearPendingTimers();
+      cancelHoldemAIRequests();
       const myToken = turnToken;
       const state = get();
       const bb = state.bigBlind;
@@ -516,6 +532,7 @@ export const useHoldemGameStore = create<HoldemGameStoreState>((set, get) => {
 
       turnToken++;
       clearPendingTimers();
+      cancelHoldemAIRequests();
       const myToken = turnToken;
 
       let nextReviews = state.heroDecisionReviews;
@@ -608,6 +625,7 @@ export const useHoldemGameStore = create<HoldemGameStoreState>((set, get) => {
 
       turnToken++;
       clearPendingTimers();
+      cancelHoldemAIRequests();
       const myToken = turnToken;
 
       const restored = restoreFromStreetSnapshot(snap);
@@ -664,6 +682,7 @@ export const useHoldemGameStore = create<HoldemGameStoreState>((set, get) => {
     resetSession: () => {
       turnToken++;
       clearPendingTimers();
+      cancelHoldemAIRequests();
       set({
         handState: null,
         coachAnalysis: null,

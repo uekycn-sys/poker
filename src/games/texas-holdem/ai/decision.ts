@@ -1,9 +1,11 @@
 import { createRng } from '../engine/deck';
 import { getLegalActions } from '../engine/rules';
 import { HandState, LegalActions, PlayerAction } from '../engine/types';
-import { analyzeOuts, calculateEquity } from './equity';
+import { analyzeBoardTexture, getPostflopPositionInfo } from './boardTexture';
+import { analyzeOuts, calculateRangeEquity } from './equity';
 import { lookupPreflopGto, scorePreflopStrength } from './gtoRanges';
-import { AiPersona } from './personas';
+import { AI_PERSONAS_BY_SEAT, AiPersona } from './personas';
+import { inferActiveOpponentRanges } from './rangeModel';
 
 export interface AiDecision {
   action: PlayerAction;
@@ -227,46 +229,69 @@ export function decideAiAction(
     };
   }
 
-  // --- POSTFLOP DECISION (Monte Carlo Equity >= 1000 iterations) ---
-  const mc = calculateEquity(
+  // --- POSTFLOP DECISION (Range-vs-Range Monte Carlo Equity + Board Texture + IP/OOP) ---
+  const oppRanges = inferActiveOpponentRanges(state, seat, AI_PERSONAS_BY_SEAT);
+  const mc = calculateRangeEquity(
     player.holeCards,
     state.communityCards,
-    Math.max(1, activeOpponents),
+    oppRanges,
     options?.iterations ?? 1000,
     options?.seed,
   );
   const outs = analyzeOuts(player.holeCards, state.communityCards);
+  const texture = analyzeBoardTexture(state.communityCards);
+  const posInfo = getPostflopPositionInfo(state, seat);
   const eq = mc.equity;
+  const isDry = texture.wetness === 'dry';
+  const isWet = texture.wetness === 'wet';
+  const isIp = posInfo.isIp;
 
   // Estimate whether this AI was preflop aggressor for C-Bet awareness
   const wasPreflopAggressor = state.actions.some(
-    (a) => a.street === 'preflop' && a.seat === seat && (a.action.type === 'raise' || a.action.type === 'all_in'),
+    (a) =>
+      a.street === 'preflop' &&
+      a.seat === seat &&
+      (a.action.type === 'raise' || a.action.type === 'all_in'),
   );
 
   // Facing a bet (toCall > 0)
   if (toCall > 0) {
-    // Implied odds bonus for strong draws on flop/turn
+    // Implied odds bonus for strong draws on flop/turn (slightly higher IP)
     const drawBonus =
-      state.street !== 'river' && outs.totalOuts >= 8 ? 0.08 : state.street !== 'river' && outs.totalOuts >= 4 ? 0.04 : 0;
-    const callThreshold = Math.max(0.08, potOdds + persona.callThresholdDelta - drawBonus);
+      state.street !== 'river' && outs.totalOuts >= 8
+        ? isIp
+          ? 0.09
+          : 0.06
+        : state.street !== 'river' && outs.totalOuts >= 4
+          ? 0.04
+          : 0;
+    const oopCaution = !isIp && isWet && persona.styleId !== 'CALLING_STATION' ? 0.03 : 0;
+    const callThreshold = Math.max(0.08, potOdds + persona.callThresholdDelta - drawBonus + oopCaution);
 
-    // Semi-bluff raise or value raise
-    const strongValueRaise = eq >= 0.74 && roll < (persona.styleId === 'CALLING_STATION' ? 0.25 : 0.72);
+    // OOP tends to check-raise more aggressively with monsters & big draws; IP smooth-calls more often
+    const valueRaiseProb =
+      persona.styleId === 'CALLING_STATION'
+        ? 0.25
+        : (isIp ? 0.62 : 0.78) + (isWet ? 0.1 : -0.05);
+    const strongValueRaise = eq >= (isWet ? 0.71 : 0.76) && roll < valueRaiseProb;
+    const semiBluffRaiseProb = persona.semiBluffFreq * (isIp ? 0.42 : 0.65);
     const semiBluffRaise =
       state.street !== 'river' &&
       outs.totalOuts >= 9 &&
-      roll < persona.semiBluffFreq * 0.55 &&
+      roll < semiBluffRaiseProb &&
       player.stack > toCall * 2.5;
 
     if ((strongValueRaise || semiBluffRaise) && legal.canRaise) {
-      const raiseTarget = state.currentBet + Math.round((state.pot + toCall) * 0.65);
+      const raisePotFraction = isWet ? 0.75 : isDry ? 0.55 : 0.65;
+      const raiseTarget = state.currentBet + Math.round((state.pot + toCall) * raisePotFraction);
+      const posTag = isIp ? '有利位置加注' : '不利位置过牌-加注';
       return {
         action: chooseRaiseOrCall(legal, raiseTarget, state.smallBlind),
         equity: eq,
         potOdds,
         reasoningZh: strongValueRaise
-          ? `${persona.name} 胜率约 ${Math.round(eq * 100)}%，加注打价值！`
-          : `${persona.name} 借听牌（${outs.totalOuts} Outs）加注半诈唬！`,
+          ? `${persona.name} 面对对手范围胜率约 ${Math.round(eq * 100)}%，在${isWet ? '湿润面' : '当前牌面'}${posTag}打价值！`
+          : `${persona.name} 借 ${outs.totalOuts} 张 Outs 在${posTag}半诈唬施压！`,
       };
     }
 
@@ -275,7 +300,7 @@ export function decideAiAction(
         action: { type: 'call' },
         equity: eq,
         potOdds,
-        reasoningZh: `${persona.name} 胜率 ${Math.round(eq * 100)}% 达到跟注门槛，选择跟注。`,
+        reasoningZh: `${persona.name} 对抗范围胜率 ${Math.round(eq * 100)}% 达到跟注门槛，${isIp ? '利用位置优势' : ''}选择跟注。`,
       };
     }
 
@@ -298,34 +323,56 @@ export function decideAiAction(
       action: legal.canFold ? { type: 'fold' } : legal.canCheck ? { type: 'check' } : { type: 'call' },
       equity: eq,
       potOdds,
-      reasoningZh: `${persona.name} 胜率仅 ${Math.round(eq * 100)}%，低于底池赔率 ${Math.round(potOdds * 100)}%，选择弃牌。`,
+      reasoningZh: `${persona.name} 对抗推断范围胜率仅 ${Math.round(eq * 100)}%，低于底池赔率 ${Math.round(potOdds * 100)}%，选择弃牌。`,
     };
   }
 
   // Checked to AI (toCall === 0)
-  const shouldValueBet = eq >= persona.thinValueThreshold;
+  const effectiveThinThreshold = persona.thinValueThreshold + (isIp ? -0.02 : 0.04);
+  const shouldValueBet = eq >= effectiveThinThreshold;
+
+  const effectiveCbetFreq = isDry
+    ? Math.min(0.95, persona.cbetFreq + (isIp ? 0.16 : 0.05))
+    : isWet
+      ? Math.max(0.15, persona.cbetFreq * (isIp ? 0.78 : 0.52))
+      : Math.min(0.9, persona.cbetFreq + (isIp ? 0.06 : -0.06));
+
   const shouldCbet =
-    state.street === 'flop' && wasPreflopAggressor && roll < persona.cbetFreq;
+    state.street === 'flop' &&
+    wasPreflopAggressor &&
+    roll < effectiveCbetFreq &&
+    (!isWet || isIp || eq >= 0.42 || outs.totalOuts >= 6);
+
   const shouldSemiBluff =
-    state.street !== 'river' && outs.totalOuts >= 8 && roll < persona.semiBluffFreq;
-  const shouldPureBluff = roll < persona.pureBluffFreq && activeOpponents <= 2;
+    state.street !== 'river' &&
+    outs.totalOuts >= 8 &&
+    roll < persona.semiBluffFreq * (isIp ? 1.05 : 0.85);
+
+  const pureBluffProb = persona.pureBluffFreq * (isIp ? 1.15 : 0.55) * (isDry ? 1.1 : 0.75);
+  const shouldPureBluff = roll < pureBluffProb && activeOpponents <= 2;
 
   if ((shouldValueBet || shouldCbet || shouldSemiBluff || shouldPureBluff) && legal.canRaise) {
+    // Dry board: small high-frequency sizing (1/3 pot); Wet board: large polarized sizing (2/3 ~ 3/4 pot)
     let potRatio = 0.5;
-    if (eq >= 0.8) potRatio = 0.75;
-    else if (shouldCbet && eq < 0.45) potRatio = 0.35;
-    else if (shouldSemiBluff) potRatio = 0.66;
+    if (isDry) {
+      potRatio = eq >= 0.86 && state.street !== 'flop' ? 0.67 : 0.33;
+    } else if (isWet) {
+      potRatio = eq >= 0.78 || shouldSemiBluff ? 0.75 : 0.67;
+    } else {
+      potRatio = eq >= 0.8 ? 0.7 : shouldCbet && eq < 0.48 ? 0.45 : 0.55;
+    }
 
     const betAmount = Math.max(legal.minRaiseTo, Math.round(state.pot * potRatio));
+    const sizeDesc = potRatio <= 0.36 ? '1/3池小额' : potRatio >= 0.72 ? '3/4池重注' : '2/3池两极化';
     return {
       action: chooseRaiseOrCall(legal, betAmount, state.smallBlind),
       equity: eq,
       potOdds,
       reasoningZh: shouldValueBet
-        ? `${persona.name} 胜率约 ${Math.round(eq * 100)}%，主动价值下注。`
+        ? `${persona.name} 范围胜率约 ${Math.round(eq * 100)}%，在${isDry ? '干燥面' : isWet ? '湿润面' : '当前牌面'}打${sizeDesc}价值下注。`
         : shouldSemiBluff
-          ? `${persona.name} 拥有 ${outs.totalOuts} 张 Outs，主动半诈唬下注。`
-          : `${persona.name} 发起持续下注/诈唬施压。`,
+          ? `${persona.name} 拥有 ${outs.totalOuts} 张 Outs，在${posInfo.positionLabelZh}以${sizeDesc}半诈唬施压。`
+          : `${persona.name} 在${isDry ? '干燥面' : '湿润面'}发起${sizeDesc}持续下注/诈唬。`,
     };
   }
 
@@ -333,6 +380,6 @@ export function decideAiAction(
     action: { type: 'check' },
     equity: eq,
     potOdds,
-    reasoningZh: `${persona.name} 选择过牌控池。`,
+    reasoningZh: `${persona.name} 在${posInfo.positionLabelZh}选择过牌控池。`,
   };
 }

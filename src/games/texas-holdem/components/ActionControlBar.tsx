@@ -1,11 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowUpCircle, Check, Coins, FastForward, History, Play, XCircle, Zap } from 'lucide-react';
+import { isTextInputFocused } from '../../../shared/hooks/keyboard';
 import { getLegalActions } from '../engine/rules';
 import { HandState, PlayerAction } from '../engine/types';
+import { formatChipsOrBb } from '../utils/formatChips';
 
 interface ActionControlBarProps {
   handState: HandState;
   isHeroTurn: boolean;
+  displayInBb: boolean;
+  shortcutsDisabled?: boolean;
   onAction: (action: PlayerAction) => void;
   onNextHand: () => void;
   onOpenReview: () => void;
@@ -16,6 +20,8 @@ interface ActionControlBarProps {
 export const ActionControlBar: React.FC<ActionControlBarProps> = ({
   handState,
   isHeroTurn,
+  displayInBb,
+  shortcutsDisabled = false,
   onAction,
   onNextHand,
   onOpenReview,
@@ -33,6 +39,45 @@ export const ActionControlBar: React.FC<ActionControlBarProps> = ({
   useEffect(() => {
     setRaiseTo(legal.minRaiseTo);
   }, [legal.minRaiseTo, handState.street, handState.currentBet, handState.activeSeat]);
+
+  useEffect(() => {
+    if (!isHeroTurn || handState.isHandOver || shortcutsDisabled) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+      if (isTextInputFocused(e.target)) return;
+
+      const key = e.key.toLowerCase();
+      if (key === 'f' && legal.canFold) {
+        e.preventDefault();
+        onAction({ type: 'fold' });
+      } else if (key === 'c') {
+        if (legal.canCheck) {
+          e.preventDefault();
+          onAction({ type: 'check' });
+        } else if (legal.canCall) {
+          e.preventDefault();
+          onAction({ type: 'call' });
+        }
+      } else if (key === 'r') {
+        if (legal.canRaise) {
+          e.preventDefault();
+          const amount = Math.max(legal.minRaiseTo, Math.min(legal.maxRaiseTo, raiseTo));
+          onAction(
+            amount >= legal.maxRaiseTo
+              ? { type: 'all_in' }
+              : { type: 'raise', amount },
+          );
+        } else if (legal.canAllIn && legal.isReopened) {
+          e.preventDefault();
+          onAction({ type: 'all_in' });
+        }
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [handState.isHandOver, isHeroTurn, legal, onAction, raiseTo, shortcutsDisabled]);
 
   const computePotShortcut = (fraction: number): number => {
     const potBase = handState.pot + legal.callAmount;
@@ -97,6 +142,7 @@ export const ActionControlBar: React.FC<ActionControlBarProps> = ({
   const isOpeningBet = handState.currentBet === 0;
   const clampedRaise = Math.max(legal.minRaiseTo, Math.min(legal.maxRaiseTo, raiseTo));
   const bbUnits = (clampedRaise / Math.max(1, handState.bigBlind)).toFixed(1);
+  const fmt = (amount: number) => formatChipsOrBb(amount, handState.bigBlind, displayInBb);
 
   return (
     <div className="hud-glass flex flex-col gap-1 sm:gap-2 rounded-2xl px-2.5 py-1.5 sm:px-3 sm:py-2 shadow-2xl">
@@ -116,6 +162,11 @@ export const ActionControlBar: React.FC<ActionControlBarProps> = ({
                 }`}
               >
                 {sc.label}
+                {displayInBb && (
+                  <span className="ml-1 font-mono text-[9px] opacity-85">
+                    {fmt(sc.value)}
+                  </span>
+                )}
               </button>
             ))}
             <button
@@ -123,7 +174,7 @@ export const ActionControlBar: React.FC<ActionControlBarProps> = ({
               onClick={() => setRaiseTo(legal.maxRaiseTo)}
               className="rounded-lg border border-rose-400/55 bg-rose-500/20 px-2 py-0.5 text-[10px] sm:text-[11px] font-black text-rose-200 hover:bg-rose-500/35 cursor-pointer"
             >
-              All-in
+              All-in{displayInBb ? ` ${fmt(legal.maxRaiseTo)}` : ''}
             </button>
           </div>
 
@@ -139,8 +190,19 @@ export const ActionControlBar: React.FC<ActionControlBarProps> = ({
               aria-label="加注额度滑动条"
             />
             <div className="min-w-[80px] rounded-lg border border-amber-300/35 bg-black/55 px-2 py-0.5 text-right font-mono text-[11px] font-black text-amber-300">
-              {clampedRaise.toLocaleString()}
-              <span className="ml-1 text-[9px] text-emerald-200/75">({bbUnits}BB)</span>
+              {displayInBb ? (
+                <>
+                  {bbUnits} BB
+                  <span className="ml-1 text-[9px] text-emerald-200/70">
+                    ({clampedRaise.toLocaleString()})
+                  </span>
+                </>
+              ) : (
+                <>
+                  {clampedRaise.toLocaleString()}
+                  <span className="ml-1 text-[9px] text-emerald-200/75">({bbUnits}BB)</span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -155,6 +217,9 @@ export const ActionControlBar: React.FC<ActionControlBarProps> = ({
             className="game-btn-slate inline-flex min-h-[36px] sm:min-h-[40px] items-center gap-1.5 rounded-xl px-4 sm:px-5 text-xs sm:text-sm font-black cursor-pointer"
           >
             <XCircle className="h-4 w-4" /> 弃牌 Fold
+            <kbd className="hidden lg:inline short-h:hidden rounded bg-black/30 px-1 py-0.5 font-mono text-[10px] opacity-75">
+              F
+            </kbd>
           </button>
         )}
 
@@ -165,6 +230,9 @@ export const ActionControlBar: React.FC<ActionControlBarProps> = ({
             className="game-btn-emerald inline-flex min-h-[36px] sm:min-h-[40px] items-center gap-1.5 rounded-xl px-4 sm:px-5 text-xs sm:text-sm font-black cursor-pointer"
           >
             <Check className="h-4 w-4" /> 过牌 Check
+            <kbd className="hidden lg:inline short-h:hidden rounded bg-black/25 px-1 py-0.5 font-mono text-[10px] opacity-80">
+              C
+            </kbd>
           </button>
         )}
 
@@ -174,7 +242,10 @@ export const ActionControlBar: React.FC<ActionControlBarProps> = ({
             onClick={() => onAction({ type: 'call' })}
             className="game-btn-sky inline-flex min-h-[36px] sm:min-h-[40px] items-center gap-1.5 rounded-xl px-4 sm:px-5 text-xs sm:text-sm font-black cursor-pointer"
           >
-            <Coins className="h-4 w-4" /> 跟注 {legal.callAmount.toLocaleString()}
+            <Coins className="h-4 w-4" /> 跟注 {fmt(legal.callAmount)}
+            <kbd className="hidden lg:inline short-h:hidden rounded bg-black/25 px-1 py-0.5 font-mono text-[10px] opacity-80">
+              C
+            </kbd>
           </button>
         )}
 
@@ -194,16 +265,17 @@ export const ActionControlBar: React.FC<ActionControlBarProps> = ({
           >
             {clampedRaise >= legal.maxRaiseTo ? (
               <>
-                <Zap className="h-4 w-4 fill-current" /> All-in {legal.maxRaiseTo.toLocaleString()}
+                <Zap className="h-4 w-4 fill-current" /> All-in {fmt(legal.maxRaiseTo)}
               </>
             ) : (
               <>
                 <ArrowUpCircle className="h-4 w-4" />
-                {isOpeningBet
-                  ? `下注 ${clampedRaise.toLocaleString()}`
-                  : `加注至 ${clampedRaise.toLocaleString()}`}
+                {isOpeningBet ? `下注 ${fmt(clampedRaise)}` : `加注至 ${fmt(clampedRaise)}`}
               </>
             )}
+            <kbd className="hidden lg:inline short-h:hidden rounded bg-black/25 px-1 py-0.5 font-mono text-[10px] opacity-80">
+              R
+            </kbd>
           </button>
         )}
 
@@ -213,7 +285,10 @@ export const ActionControlBar: React.FC<ActionControlBarProps> = ({
             onClick={() => onAction({ type: 'all_in' })}
             className="game-btn-crimson inline-flex min-h-[36px] sm:min-h-[40px] items-center justify-center gap-1.5 rounded-xl px-4 sm:px-5 text-xs sm:text-sm font-black cursor-pointer"
           >
-            <Zap className="h-4 w-4 fill-current" /> All-in {legal.maxRaiseTo.toLocaleString()}
+            <Zap className="h-4 w-4 fill-current" /> All-in {fmt(legal.maxRaiseTo)}
+            <kbd className="hidden lg:inline short-h:hidden rounded bg-black/25 px-1 py-0.5 font-mono text-[10px] opacity-80">
+              R
+            </kbd>
           </button>
         )}
       </div>

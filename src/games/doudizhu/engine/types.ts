@@ -127,6 +127,7 @@ export interface MatchSettlement {
 
 export interface GameState {
   phase: GamePhase;
+  matchMode?: 'standard' | 'puzzle' | 'replay-resume';
   baseScore: number;
   hands: [Card[], Card[], Card[]];
   bottomCards: Card[];

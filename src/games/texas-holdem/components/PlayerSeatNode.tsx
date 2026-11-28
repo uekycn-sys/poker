@@ -6,9 +6,16 @@ import { PlayerAvatar } from '../../../shared/components/PlayerAvatar';
 import { AvatarStyleId } from '../../../shared/store/playerStore';
 import { AiPersona, getPfrPct, getVpipPct, PlayerHudStats } from '../ai/personas';
 import { PlayerState } from '../engine/types';
+import {
+  formatActionLabelWithBb,
+  formatChipsOrBb,
+  formatSignedChipsOrBb,
+} from '../utils/formatChips';
 
 interface PlayerSeatNodeProps {
   player: PlayerState;
+  bigBlind: number;
+  displayInBb: boolean;
   isDealer: boolean;
   isActive: boolean;
   isShowdown: boolean;
@@ -41,6 +48,8 @@ const BET_ALIGN_CLASSES: Record<NonNullable<PlayerSeatNodeProps['betAlign']>, st
 
 export const PlayerSeatNode: React.FC<PlayerSeatNodeProps> = ({
   player,
+  bigBlind,
+  displayInBb,
   isDealer,
   isActive,
   isShowdown,
@@ -58,6 +67,11 @@ export const PlayerSeatNode: React.FC<PlayerSeatNodeProps> = ({
   const vpip = getVpipPct(hudStat);
   const pfr = getPfrPct(hudStat);
   const handsSample = hudStat?.handsPlayed ?? 0;
+  const formattedActionLabel = formatActionLabelWithBb(
+    player.lastActionLabel,
+    bigBlind,
+    displayInBb,
+  );
 
   return (
     <div
@@ -68,7 +82,11 @@ export const PlayerSeatNode: React.FC<PlayerSeatNodeProps> = ({
       {/* Projected Street Bet Chip Stack */}
       {player.streetBet > 0 && !isShowdown && (
         <div className={`pointer-events-none absolute z-30 ${BET_ALIGN_CLASSES[betAlign]}`}>
-          <ChipStack amount={player.streetBet} compact />
+          <ChipStack
+            amount={player.streetBet}
+            displayText={formatChipsOrBb(player.streetBet, bigBlind, displayInBb)}
+            compact
+          />
         </div>
       )}
 
@@ -187,7 +205,7 @@ export const PlayerSeatNode: React.FC<PlayerSeatNodeProps> = ({
 
             <div className="mt-0.5 flex items-center gap-1 font-mono text-[10px] sm:text-xs font-black text-amber-300">
               <ChipTokenSvg className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
-              <span>{player.stack.toLocaleString()}</span>
+              <span>{formatChipsOrBb(player.stack, bigBlind, displayInBb)}</span>
             </div>
           </div>
         </motion.div>
@@ -214,9 +232,9 @@ export const PlayerSeatNode: React.FC<PlayerSeatNodeProps> = ({
       )}
 
       {/* Action / Showdown Eval Pill */}
-      {(player.lastActionLabel || handEvalLabel || wonAmount > 0) && (
+      {(formattedActionLabel || handEvalLabel || wonAmount > 0) && (
         <div className="mt-0.5 flex flex-wrap items-center justify-center gap-1">
-          {player.lastActionLabel && !isWinner && (
+          {formattedActionLabel && !isWinner && (
             <span
               className={`rounded-full px-1.5 sm:px-2 py-0.2 sm:py-0.5 text-[9px] sm:text-[10px] font-black shadow whitespace-nowrap ${
                 player.folded
@@ -226,7 +244,7 @@ export const PlayerSeatNode: React.FC<PlayerSeatNodeProps> = ({
                     : 'border border-emerald-400/35 bg-emerald-950/90 text-emerald-200'
               }`}
             >
-              {player.lastActionLabel}
+              {formattedActionLabel}
             </span>
           )}
           {handEvalLabel && !player.folded && (
@@ -236,7 +254,7 @@ export const PlayerSeatNode: React.FC<PlayerSeatNodeProps> = ({
           )}
           {wonAmount > 0 && (
             <span className="rounded-full bg-gradient-to-r from-amber-300 to-amber-500 px-2 py-0.5 font-mono text-[10px] sm:text-[11px] font-black text-emerald-950 shadow-lg">
-              +{wonAmount.toLocaleString()}
+              {formatSignedChipsOrBb(wonAmount, bigBlind, displayInBb)}
             </span>
           )}
         </div>

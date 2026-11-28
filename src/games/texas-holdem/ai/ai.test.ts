@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { createCard, createDeck } from '../engine/deck';
 import { applyAction, createHand, validateAction } from '../engine/rules';
 import { HoldemCard, HoldemRank, HoldemSuit, PositionName } from '../engine/types';
+import { analyzeBoardTexture } from './boardTexture';
 import { analyzeCoachSpot, evaluateHeroDecision } from './coach';
 import { decideAiAction } from './decision';
-import { analyzeOuts, calculateEquity } from './equity';
+import { analyzeOuts, calculateEquity, calculateRangeEquity } from './equity';
 import { getPreflopRangeMatrix, lookupPreflopGto } from './gtoRanges';
 import { AI_PERSONAS_BY_SEAT } from './personas';
+import { inferOpponentRange } from './rangeModel';
 
 function c(short: string): HoldemCard {
   const rankMap: Record<string, HoldemRank> = {
@@ -292,5 +294,168 @@ describe('GTO Preflop Ranges, AI Style Differentiation & EV Coach', () => {
     );
     expect(badReview.isBlunder).toBe(true);
     expect(badReview.blunderType).toBe('bad_odds_call');
+  });
+});
+
+describe('Range-vs-Range Equity, Board Texture & Position-Aware AI/Coach', () => {
+  it('computes significantly lower range equity for marginal top pair (A9o on A-7-2) vs NIT 3-Bet range within 150ms', () => {
+    const heroCards = [c('As'), c('9d')];
+    const board = [c('Ah'), c('7c'), c('2s')];
+
+    // Build a 6-max hand where Hero (BTN, seat 0) opens and NIT (BB, seat 4) 3-Bets preflop
+    const used = new Set(
+      ['As', '9d', 'Kc', 'Qh', 'Ah', '7c', '2s', '3d', '4h', '5c', '6d', '8h', 'Td', 'Jc', '2h'].map(
+        (s) => c(s).code,
+      ),
+    );
+    const remaining = createDeck().filter((x) => !used.has(x.code));
+
+    let state = createHand({
+      handId: 42,
+      players: [
+        { seat: 0, name: 'Hero', isHuman: true, stack: 2000 },
+        { seat: 2, name: 'SB', isHuman: false, stack: 2000 },
+        { seat: 4, name: '格雷', isHuman: false, stack: 2000 },
+      ],
+      dealerSeat: 0,
+      smallBlind: 10,
+      bigBlind: 20,
+      customDeck: [
+        c('3d'), // SB
+        c('Kc'), // BB (NIT)
+        c('As'), // Hero BTN
+        c('4h'), // SB
+        c('Qh'), // BB (NIT)
+        c('9d'), // Hero BTN
+        c('Ah'), // Flop 1
+        c('7c'), // Flop 2
+        c('2s'), // Flop 3
+        ...remaining,
+      ],
+    });
+
+    // BTN opens to 50, SB folds, NIT BB 3-Bets to 160, BTN calls
+    state = applyAction(state, 0, { type: 'raise', amount: 50 });
+    state = applyAction(state, 2, { type: 'fold' });
+    state = applyAction(state, 4, { type: 'raise', amount: 160 });
+    state = applyAction(state, 0, { type: 'call' });
+    expect(state.street).toBe('flop');
+
+    const nitRange = inferOpponentRange(state, 4, AI_PERSONAS_BY_SEAT[4]);
+    expect(nitRange.tightness).toBe('ultra_narrow');
+    expect(nitRange.rangePct).toBeGreaterThanOrEqual(0.03);
+    expect(nitRange.rangePct).toBeLessThanOrEqual(0.07);
+
+    const randomEq = calculateEquity(heroCards, board, 1, 1200, 101);
+    const rangeEq = calculateRangeEquity(heroCards, board, [nitRange], 1200, 101);
+
+    expect(rangeEq.iterations).toBe(1200);
+    expect(rangeEq.elapsedMs).toBeLessThan(150);
+    // A9o on A-7-2 vs random hand is ~77%, whereas vs NIT 3-Bet (QQ+/AK/AQ) it drops sharply
+    expect(randomEq.equity).toBeGreaterThan(0.7);
+    expect(rangeEq.equity).toBeLessThan(randomEq.equity - 0.15);
+    expect(rangeEq.equity).toBeLessThan(0.6);
+
+    // NIT bets flop -> Coach HUD should warn about NIT's ultra-narrow 3-Bet range, board texture, and IP
+    state = applyAction(state, 4, { type: 'raise', amount: 120 });
+    const coach = analyzeCoachSpot(state, 0, AI_PERSONAS_BY_SEAT, 1200);
+    expect(coach.boardTexture?.wetness).toBe('dry');
+    expect(coach.isIp).toBe(true);
+    expect(coach.heroEquityPct).toBeLessThan(60);
+    expect(coach.explanationZh).toContain('岩石');
+    expect(coach.explanationZh).toContain('干燥面');
+    expect(coach.explanationZh).toContain('IP');
+  });
+
+  it('keeps Calling Station flatting range wide and accurately classifies board textures', () => {
+    const dryBoard = analyzeBoardTexture([c('As'), c('7d'), c('2c')]);
+    expect(dryBoard.wetness).toBe('dry');
+    expect(dryBoard.hasFlushDrawBoard).toBe(false);
+    expect(dryBoard.isStraightConnected).toBe(false);
+    expect(dryBoard.highCardStructure).toBe('ace_high');
+
+    const wetBoard = analyzeBoardTexture([c('Js'), c('Ts'), c('9h')]);
+    expect(wetBoard.wetness).toBe('wet');
+    expect(wetBoard.hasFlushDrawBoard).toBe(true);
+    expect(wetBoard.isStraightConnected).toBe(true);
+
+    const doubleFlushTurn = analyzeBoardTexture([c('Ah'), c('9h'), c('Ts'), c('2s')]);
+    expect(doubleFlushTurn.isDoubleFlushDraw).toBe(true);
+
+    const pairedBoard = analyzeBoardTexture([c('Kd'), c('7c'), c('7h')]);
+    expect(pairedBoard.isPaired).toBe(true);
+    expect(pairedBoard.isTripsOrQuads).toBe(false);
+
+    // Calling station cold-call keeps wide range
+    const used = new Set(['Ah', 'Kh', '8d', '7c'].map((s) => c(s).code));
+    const rem = createDeck().filter((x) => !used.has(x.code));
+    let state = createHand({
+      handId: 43,
+      players: [
+        { seat: 0, name: 'Hero', isHuman: true, stack: 2000 },
+        { seat: 3, name: 'Station', isHuman: false, stack: 2000 },
+      ],
+      dealerSeat: 0,
+      smallBlind: 10,
+      bigBlind: 20,
+      customDeck: [c('Ah'), c('8d'), c('Kh'), c('7c'), ...rem],
+    });
+    state = applyAction(state, 0, { type: 'raise', amount: 50 });
+    state = applyAction(state, 3, { type: 'call' });
+
+    const stationRange = inferOpponentRange(state, 3, AI_PERSONAS_BY_SEAT[3]);
+    expect(stationRange.tightness).toBe('wide');
+    expect(stationRange.rangePct).toBeGreaterThan(0.35);
+  });
+
+  it('uses smaller C-Bet sizing on dry boards than polarized sizing on wet boards', () => {
+    // Dry A-7-2 rainbow board vs Wet J-T-9 two-tone board for TAG preflop aggressor
+    const makePostflopSpot = (boardCards: HoldemCard[]) => {
+      const heroHole = [c('Kd'), c('Qd')];
+      const oppHole = [c('5c'), c('4c')];
+      const used = new Set([...heroHole, ...oppHole, ...boardCards].map((x) => x.code));
+      const rem = createDeck().filter((x) => !used.has(x.code));
+
+      let st = createHand({
+        handId: 44,
+        players: [
+          { seat: 0, name: 'Hero', isHuman: true, stack: 2000 },
+          { seat: 1, name: 'TAG', isHuman: false, stack: 2000 },
+        ],
+        dealerSeat: 1, // AI is BTN (IP), Hero is BB (OOP)
+        smallBlind: 10,
+        bigBlind: 20,
+        customDeck: [
+          heroHole[0],
+          oppHole[0],
+          heroHole[1],
+          oppHole[1],
+          ...boardCards,
+          ...rem,
+        ],
+      });
+      // AI (BTN) raises 60, Hero calls 60 -> pot = 120; flop: Hero checks -> AI to act
+      st = applyAction(st, 1, { type: 'raise', amount: 60 });
+      st = applyAction(st, 0, { type: 'call' });
+      st = applyAction(st, 0, { type: 'check' });
+      return st;
+    };
+
+    const drySpot = makePostflopSpot([c('As'), c('7c'), c('2h')]);
+    const wetSpot = makePostflopSpot([c('Js'), c('Ts'), c('9h')]);
+
+    // Seed that triggers C-bet on dry board (roll < cbetFreq) and value/semi-bluff on wet board (KQ has OESD+overcards)
+    const dryDecision = decideAiAction(drySpot, 1, AI_PERSONAS_BY_SEAT[1], {
+      iterations: 1000,
+      seed: 12,
+    });
+    const wetDecision = decideAiAction(wetSpot, 1, AI_PERSONAS_BY_SEAT[1], {
+      iterations: 1000,
+      seed: 12,
+    });
+
+    expect(dryDecision.action.type).toBe('raise');
+    expect(wetDecision.action.type).toBe('raise');
+    expect(dryDecision.action.amount!).toBeLessThan(wetDecision.action.amount!);
   });
 });

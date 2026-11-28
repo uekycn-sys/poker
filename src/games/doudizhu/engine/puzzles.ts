@@ -202,6 +202,7 @@ export function buildPuzzleGameState(puzzle: EndgamePuzzle): GameState {
   return {
     ...base,
     phase: 'PLAYING',
+    matchMode: 'puzzle',
     hands,
     bottomCards: [],
     landlordSeat: puzzle.landlordSeat,

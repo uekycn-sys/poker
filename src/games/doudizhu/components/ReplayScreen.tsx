@@ -14,6 +14,7 @@ import {
 } from '../engine';
 import { PlayingCard } from '../../../shared/cards/PlayingCard';
 import { ReplayTimeline, TimelineMarker } from '../../../shared/components/ReplayTimeline';
+import { isWorkerCancelledError } from '../../../shared/workers/resilientWorker';
 import { SavedMatchRecord, useDoudizhuProfileStore } from '../store/doudizhuProfileStore';
 import { useDoudizhuGameStore } from '../store/doudizhuGameStore';
 import { RoleBadge, RoleEmblemIcon } from './RoleIcons';
@@ -126,15 +127,29 @@ export const ReplayScreen: React.FC<ReplayScreenProps> = ({ onExitToLobby }) => 
     setAutoPlaying(false);
     if (!activeRecord) {
       setBlunders([]);
+      setBlundersLoading(false);
       return;
     }
 
+    const controller = new AbortController();
+    let cancelled = false;
     const fullState = reconstructStateAtStep(activeRecord, activeRecord.moveHistory.length);
     setBlundersLoading(true);
-    void requestBlunders(fullState, 0, 3).then((reports) => {
-      setBlunders(reports);
-      setBlundersLoading(false);
-    });
+    void requestBlunders(fullState, 0, 3, { signal: controller.signal })
+      .then((reports) => {
+        if (cancelled) return;
+        setBlunders(reports);
+        setBlundersLoading(false);
+      })
+      .catch((err) => {
+        if (cancelled || isWorkerCancelledError(err)) return;
+        setBlundersLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [activeRecord]);
 
   const stepState = useMemo(
@@ -144,7 +159,22 @@ export const ReplayScreen: React.FC<ReplayScreenProps> = ({ onExitToLobby }) => 
 
   useEffect(() => {
     if (!stepState) return;
-    void requestWinRate(stepState, 0).then(setStepWinRate);
+    const controller = new AbortController();
+    let cancelled = false;
+    void requestWinRate(stepState, 0, { signal: controller.signal })
+      .then((wr) => {
+        if (!cancelled) setStepWinRate(wr);
+      })
+      .catch((err) => {
+        if (!cancelled && !isWorkerCancelledError(err)) {
+          // Ignore unexpected win-rate error in replay view
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [stepState]);
 
   useEffect(() => {

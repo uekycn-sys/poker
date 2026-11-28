@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { CoachAnalysis } from '../ai/coach';
 import { HoldemCard, PositionName } from '../engine/types';
+import { formatChipsOrBb } from '../utils/formatChips';
 
 interface CoachHudPanelProps {
   hudEnabled: boolean;
@@ -21,6 +22,8 @@ interface CoachHudPanelProps {
   heroCards: readonly HoldemCard[];
   heroPosition: PositionName;
   isPreflop: boolean;
+  bigBlind?: number;
+  displayInBb?: boolean;
   onOpenMatrix: () => void;
   onClose?: () => void;
 }
@@ -31,6 +34,8 @@ export const CoachHudPanel: React.FC<CoachHudPanelProps> = ({
   loading,
   analysis,
   isPreflop,
+  bigBlind = 100,
+  displayInBb = false,
   onOpenMatrix,
   onClose,
 }) => {
@@ -129,7 +134,9 @@ export const CoachHudPanel: React.FC<CoachHudPanelProps> = ({
                 跟注门槛 (Pot Odds)
               </span>
               <span className="font-mono text-sm font-black text-amber-300">
-                {analysis.toCall > 0 ? `${analysis.potOddsPct}% (需补 ${analysis.toCall})` : '0% (免费看牌)'}
+                {analysis.toCall > 0
+                  ? `${analysis.potOddsPct}% (需补 ${formatChipsOrBb(analysis.toCall, bigBlind, displayInBb)})`
+                  : '0% (免费看牌)'}
               </span>
             </div>
             <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-900">
@@ -140,12 +147,45 @@ export const CoachHudPanel: React.FC<CoachHudPanelProps> = ({
             </div>
 
             <div className="mt-2.5 flex items-center justify-between text-[11px] text-emerald-200/75">
-              <span>底池: {analysis.potSize.toLocaleString()}</span>
+              <span>底池: {formatChipsOrBb(analysis.potSize, bigBlind, displayInBb)}</span>
               <span className="rounded-md bg-white/10 px-2 py-0.5 font-mono font-bold text-sky-200">
                 SPR {analysis.spr}
               </span>
             </div>
           </div>
+
+          {/* Range, Board Texture & Position Tags */}
+          {(analysis.boardTexture || analysis.opponentRangeSummaryZh || analysis.isIp !== undefined) && (
+            <div className="space-y-1.5 rounded-2xl border border-white/10 bg-black/35 p-2.5 text-[10px]">
+              <div className="flex flex-wrap items-center gap-1">
+                {analysis.isIp !== undefined && (
+                  <span
+                    className={`rounded-md border px-1.5 py-0.5 font-black ${
+                      analysis.isIp
+                        ? 'border-emerald-400/40 bg-emerald-500/20 text-emerald-200'
+                        : 'border-amber-400/40 bg-amber-500/15 text-amber-200'
+                    }`}
+                  >
+                    {analysis.isIp ? 'IP 有利位置' : 'OOP 不利位置'}
+                  </span>
+                )}
+                {analysis.boardTexture?.tagsZh.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-md border border-sky-400/30 bg-sky-500/15 px-1.5 py-0.5 font-bold text-sky-200"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              {analysis.opponentRangeSummaryZh && (
+                <div className="text-[10px] leading-snug text-amber-100/85">
+                  <span className="font-bold text-amber-300">推断对手范围：</span>
+                  {analysis.opponentRangeSummaryZh}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Outs Breakdown */}
           {analysis.outs.totalOuts > 0 && (

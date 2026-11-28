@@ -214,6 +214,44 @@ describe('canPatternBeat & findBeatingPlays', () => {
     expect(leadHints.length).toBeGreaterThan(5);
   });
 
+  it('generates FOUR_WITH_TWO on free lead and up to 3 tactical kicker variants for triples/airplanes', () => {
+    const fourHand = parseCards('6 6 6 6 3 3 9 9 K');
+    const fourLeads = findBeatingPlays(fourHand, null);
+    expect(fourLeads.some((p) => p.type === 'FOUR_WITH_TWO_SINGLES' && p.mainRank === Rank.SIX)).toBe(true);
+    expect(fourLeads.some((p) => p.type === 'FOUR_WITH_TWO_PAIRS' && p.mainRank === Rank.SIX)).toBe(true);
+
+    // 3 4 5 6 7 straight + 8 8 8 body + 9 + K:
+    // Should offer minimal kicker (3), chain-preserving kicker (9), and high kicker (K)
+    const tripleHand = parseCards('3 4 5 6 7 8 8 8 9 K');
+    const vsTriple31 = findBeatingPlays(tripleHand, analyzeHand(parseCards('4 4 4 3')));
+    const tripleKickers = vsTriple31
+      .filter((p) => p.type === 'TRIPLE_WITH_SINGLE' && p.mainRank === Rank.EIGHT)
+      .map((p) => p.cards.find((c) => c.rank !== Rank.EIGHT)!.rank);
+    expect(tripleKickers.length).toBe(3);
+    expect(tripleKickers).toContain(Rank.THREE);
+    expect(tripleKickers).toContain(Rank.NINE);
+    expect(tripleKickers).toContain(Rank.KING);
+
+    // Pair kicker variants on TRIPLE_WITH_PAIR: 33 44 55 pair-straight + 888 + 99 + KK
+    const pairHand = parseCards('3 3 4 4 5 5 8 8 8 9 9 K K');
+    const vsTriple32 = findBeatingPlays(pairHand, analyzeHand(parseCards('4 4 4 3 3')));
+    const pairKickers = vsTriple32
+      .filter((p) => p.type === 'TRIPLE_WITH_PAIR' && p.mainRank === Rank.EIGHT)
+      .map((p) => p.cards.find((c) => c.rank !== Rank.EIGHT)!.rank);
+    expect(pairKickers.length).toBe(3);
+    expect(pairKickers).toContain(Rank.THREE);
+    expect(pairKickers).toContain(Rank.NINE);
+    expect(pairKickers).toContain(Rank.KING);
+
+    // Airplane with singles tactical variants
+    const planeHand = parseCards('3 4 5 6 7 8 8 8 9 9 9 J Q K');
+    const planeLeads = findBeatingPlays(planeHand, null).filter(
+      (p) => p.type === 'AIRPLANE_WITH_SINGLES' && p.mainRank === Rank.EIGHT && p.chainLength === 2,
+    );
+    expect(planeLeads.length).toBeGreaterThanOrEqual(2);
+    expect(planeLeads.length).toBeLessThanOrEqual(3);
+  });
+
   it('extracts smart straights and pair straights on swipe without altering valid plays', () => {
     // 5-card straight embedded among duplicates: 3 4 5 5 6 7 8 -> extracts 3..8 straight (6 cards)
     const swipe1 = parseCards('3 4 5 5 6 7 8');

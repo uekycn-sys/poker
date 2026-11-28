@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowLeft,
   BrainCircuit,
+  Coins,
   Home,
   Megaphone,
   MicOff,
@@ -14,11 +15,13 @@ import {
 import { PlayingCard } from '../../../shared/cards/PlayingCard';
 import { ChipBalancePill, ChipStack, FullscreenButton } from '../../../shared/components';
 import { TableEffects } from '../../../shared/effects/TableEffects';
+import { isTextInputFocused } from '../../../shared/hooks/keyboard';
 import { useStageViewport } from '../../../shared/hooks/useStageViewport';
 import { usePlayerStore } from '../../../shared/store/playerStore';
 import { AI_PERSONAS_BY_SEAT } from '../ai/personas';
 import { calculateSidePots } from '../engine/sidePots';
 import { ActionControlBar } from './ActionControlBar';
+import { ActionTicker } from './ActionTicker';
 import { CoachHudPanel } from './CoachHudPanel';
 import { HandReviewModal } from './HandReviewModal';
 import { OutsQuizModal } from './OutsQuizModal';
@@ -26,6 +29,7 @@ import { PlayerSeatNode } from './PlayerSeatNode';
 import { PreflopRangeMatrix } from './PreflopRangeMatrix';
 import { useHoldemGameStore } from '../store/holdemGameStore';
 import { useHoldemProfileStore } from '../store/holdemProfileStore';
+import { formatChipsOrBb } from '../utils/formatChips';
 
 interface HoldemTableProps {
   onExitToLobby: () => void;
@@ -77,9 +81,11 @@ export const HoldemTable: React.FC<HoldemTableProps> = ({ onExitToLobby }) => {
 
   const hudEnabled = useHoldemProfileStore((s) => s.hudEnabled);
   const outsQuizEnabled = useHoldemProfileStore((s) => s.outsQuizEnabled);
+  const displayInBb = useHoldemProfileStore((s) => s.displayInBb);
   const trainingPoints = useHoldemProfileStore((s) => s.trainingPoints);
   const toggleHud = useHoldemProfileStore((s) => s.toggleHud);
   const toggleOutsQuiz = useHoldemProfileStore((s) => s.toggleOutsQuiz);
+  const toggleDisplayInBb = useHoldemProfileStore((s) => s.toggleDisplayInBb);
 
   // Separate slide-over state for compact viewports (< xl) so initial mobile landscape table is unobstructed
   const [compactHudOpen, setCompactHudOpen] = useState(false);
@@ -125,6 +131,30 @@ export const HoldemTable: React.FC<HoldemTableProps> = ({ onExitToLobby }) => {
     () => new Set(handState?.showdown?.winningCardIds ?? []),
     [handState?.showdown?.winningCardIds],
   );
+
+  useEffect(() => {
+    if (!handState) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+      if (isTextInputFocused(e.target)) return;
+      if (showReviewModal || Boolean(outsQuiz && outsQuiz.active)) return;
+
+      if (e.key === 'Escape' && showMatrixModal) {
+        e.preventDefault();
+        setShowMatrixModal(false);
+        return;
+      }
+
+      if (e.key.toLowerCase() === 'm') {
+        e.preventDefault();
+        setShowMatrixModal(!showMatrixModal);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [handState, outsQuiz, setShowMatrixModal, showMatrixModal, showReviewModal]);
 
   if (!handState) return null;
 
@@ -194,6 +224,21 @@ export const HoldemTable: React.FC<HoldemTableProps> = ({ onExitToLobby }) => {
 
         <div className="flex shrink-0 items-center gap-1.5 whitespace-nowrap">
           <ChipBalancePill chips={chips} lastDelta={lastChipDelta} compact />
+
+          <button
+            type="button"
+            onClick={toggleDisplayInBb}
+            className={`inline-flex shrink-0 items-center gap-1 rounded-xl border px-2 py-1.5 text-xs font-black transition cursor-pointer ${
+              displayInBb
+                ? 'border-amber-300/75 bg-amber-400/25 text-amber-200 shadow'
+                : 'hud-glass text-amber-100 hover:border-amber-300/50'
+            }`}
+            aria-label="切换筹码或 BB 显示"
+            title="一键切换筹码数值 / 大盲倍数 (BB) 显示"
+          >
+            <Coins className="h-3.5 w-3.5 text-amber-300" />
+            <span>{displayInBb ? 'BB' : '筹码'}</span>
+          </button>
 
           <button
             type="button"
@@ -317,13 +362,23 @@ export const HoldemTable: React.FC<HoldemTableProps> = ({ onExitToLobby }) => {
                     {/* Pot & Side Pots Breakdown */}
                     <div className="relative z-10 mb-1 sm:mb-2 flex flex-col items-center gap-0.5 sm:gap-1">
                       <div className="flex items-center gap-1.5">
-                        {handState.pot > 0 && <ChipStack amount={handState.pot} compact />}
+                        {handState.pot > 0 && (
+                          <ChipStack
+                            amount={handState.pot}
+                            displayText={formatChipsOrBb(
+                              handState.pot,
+                              handState.bigBlind,
+                              displayInBb,
+                            )}
+                            compact
+                          />
+                        )}
                         <div className="inline-flex items-center gap-1 rounded-full border border-amber-300/50 bg-black/75 px-2.5 py-0.5 sm:px-3.5 sm:py-1 shadow-lg backdrop-blur">
                           <span className="text-[9px] sm:text-xs font-bold text-amber-200/85">
                             总底池
                           </span>
                           <span className="font-mono text-[11px] sm:text-sm md:text-base font-black text-amber-300">
-                            {handState.pot.toLocaleString()}
+                            {formatChipsOrBb(handState.pot, handState.bigBlind, displayInBb)}
                           </span>
                         </div>
                       </div>
@@ -335,7 +390,7 @@ export const HoldemTable: React.FC<HoldemTableProps> = ({ onExitToLobby }) => {
                               key={pot.id}
                               className="rounded-full border border-white/15 bg-black/70 px-1.5 py-0.2 font-mono text-[8px] sm:text-[10px] font-bold text-emerald-200"
                             >
-                              {pot.label}: {pot.amount.toLocaleString()}
+                              {pot.label}: {formatChipsOrBb(pot.amount, handState.bigBlind, displayInBb)}
                             </span>
                           ))}
                         </div>
@@ -395,6 +450,8 @@ export const HoldemTable: React.FC<HoldemTableProps> = ({ onExitToLobby }) => {
                 <div key={p.seat} className={`absolute ${seatPos.posClass}`}>
                   <PlayerSeatNode
                     player={p}
+                    bigBlind={handState.bigBlind}
+                    displayInBb={displayInBb}
                     isDealer={handState.dealerSeat === p.seat}
                     isActive={!handState.isHandOver && handState.activeSeat === p.seat}
                     isShowdown={isShowdown}
@@ -411,6 +468,15 @@ export const HoldemTable: React.FC<HoldemTableProps> = ({ onExitToLobby }) => {
                 </div>
               );
             })}
+
+            {/* Collapsible Real-time Action Ticker (bottom-left) */}
+            <div className="pointer-events-none absolute bottom-1 left-1 sm:left-2 z-25">
+              <ActionTicker
+                handState={handState}
+                displayInBb={displayInBb}
+                defaultOpen={viewport.width >= 1024 && viewport.height >= 640}
+              />
+            </div>
           </div>
 
           {/* Bottom Casino Action Control Dock */}
@@ -418,6 +484,10 @@ export const HoldemTable: React.FC<HoldemTableProps> = ({ onExitToLobby }) => {
             <ActionControlBar
               handState={handState}
               isHeroTurn={isHeroTurn}
+              displayInBb={displayInBb}
+              shortcutsDisabled={
+                showMatrixModal || showReviewModal || Boolean(outsQuiz && outsQuiz.active)
+              }
               onAction={submitHeroAction}
               onNextHand={startNextHand}
               onOpenReview={openReviewModal}
@@ -438,6 +508,8 @@ export const HoldemTable: React.FC<HoldemTableProps> = ({ onExitToLobby }) => {
               heroCards={hero.holeCards}
               heroPosition={hero.position}
               isPreflop={handState.street === 'preflop'}
+              bigBlind={handState.bigBlind}
+              displayInBb={displayInBb}
               onOpenMatrix={() => setShowMatrixModal(true)}
             />
           </div>
@@ -454,6 +526,8 @@ export const HoldemTable: React.FC<HoldemTableProps> = ({ onExitToLobby }) => {
               heroCards={hero.holeCards}
               heroPosition={hero.position}
               isPreflop={handState.street === 'preflop'}
+              bigBlind={handState.bigBlind}
+              displayInBb={displayInBb}
               onOpenMatrix={() => setShowMatrixModal(true)}
               onClose={() => setCompactHudOpen(false)}
             />

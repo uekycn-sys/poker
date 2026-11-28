@@ -8,7 +8,7 @@ import {
   Seat,
 } from './types';
 import { findBeatingPlays, matchPatternToBeat } from './rules';
-import { decomposeHand } from './decomposer';
+import { decomposeHand, HandDecomposition } from './decomposer';
 import {
   computeExternalRemainingCounts,
   getExternalBombRanks,
@@ -16,9 +16,16 @@ import {
   isBossPattern,
 } from './cardCounter';
 import { nextSeat } from './gameLoop';
+import { sampleDeterminizedHands } from './determinizer';
 
 export type AIDifficulty = 'casual' | 'intermediate' | 'master';
 export type PlayerPosition = 'landlord' | 'landlord_down' | 'landlord_up';
+export type FarmerDynamicRole = 'attacker' | 'support' | 'balanced';
+
+export interface ChooseMoveOptions {
+  matchMode?: 'standard' | 'puzzle' | 'replay-resume';
+  openHand?: boolean;
+}
 
 export interface AIMoveDecision {
   isPass: boolean;
@@ -42,6 +49,139 @@ function getTeammateSeat(seat: Seat, landlordSeat: Seat): Seat | null {
   return seat === down ? up : down;
 }
 
+/**
+ * Return true only when all three hands are legitimately public (puzzle mode,
+ * explicit open-hand solver invocation, or all opponents activated Mingpai).
+ */
+export function isPerfectInformationGame(
+  state: GameState,
+  seat: Seat,
+  options?: ChooseMoveOptions,
+): boolean {
+  if (options?.openHand) return true;
+  if (options?.matchMode === 'puzzle' || state.matchMode === 'puzzle') return true;
+  return ([0, 1, 2] as Seat[]).every((s) => s === seat || state.mingpaiSeats.includes(s));
+}
+
+function canSeeSeatHand(
+  state: GameState,
+  observerSeat: Seat,
+  targetSeat: Seat,
+  options?: ChooseMoveOptions,
+): boolean {
+  if (targetSeat === observerSeat) return true;
+  if (isPerfectInformationGame(state, observerSeat, options)) return true;
+  return state.mingpaiSeats.includes(targetSeat);
+}
+
+export interface FarmerRoleAssessment {
+  role: FarmerDynamicRole;
+  teammateCards: number;
+  myEffectiveTurns: number;
+  teammateEffectiveTurns: number;
+  teammateNearWin: boolean;
+}
+
+/**
+ * Dynamically classify a farmer as `attacker` (主攻) or `support` (辅助).
+ * Only reads `state.hands[teammateSeat]` when teammate's hand is visible (mingpai/puzzle/sampled world);
+ * otherwise estimates teammate's effective turns strictly from public counts & move/bid history.
+ */
+export function assessFarmerDynamicRole(
+  state: GameState,
+  seat: Seat,
+  myDecomp: HandDecomposition,
+  canSeeTeammate: boolean,
+): FarmerRoleAssessment {
+  const landlordSeat = state.landlordSeat ?? 0;
+  const teammateSeat = getTeammateSeat(seat, landlordSeat);
+  if (teammateSeat === null) {
+    return {
+      role: 'balanced',
+      teammateCards: 99,
+      myEffectiveTurns: myDecomp.effectiveTurns,
+      teammateEffectiveTurns: 99,
+      teammateNearWin: false,
+    };
+  }
+
+  const teammateCards = state.hands[teammateSeat].length;
+  const teammateNearWin = teammateCards <= 2;
+
+  let teammateEffectiveTurns: number;
+  let mateHandValue = 30;
+
+  if (teammateCards === 0) {
+    teammateEffectiveTurns = 0;
+    mateHandValue = 100;
+  } else if (canSeeTeammate) {
+    const mateDecomp = decomposeHand(state.hands[teammateSeat]);
+    teammateEffectiveTurns = mateDecomp.effectiveTurns;
+    mateHandValue = mateDecomp.handValue;
+  } else {
+    // Public-only estimation from card count + bidding/doubling/play history
+    teammateEffectiveTurns = teammateCards <= 2 ? 1 : Math.max(1, teammateCards / 2.35);
+
+    const mateCalledOrGrabbed = state.bidHistory.some(
+      (b) => b.seat === teammateSeat && (b.action === 'CALL' || b.action === 'GRAB'),
+    );
+    if (mateCalledOrGrabbed) {
+      teammateEffectiveTurns -= 0.7;
+      mateHandValue += 6;
+    }
+
+    const mateDouble = state.doubleChoices[teammateSeat];
+    if (mateDouble === 4) {
+      teammateEffectiveTurns -= 1.1;
+      mateHandValue += 10;
+    } else if (mateDouble === 2) {
+      teammateEffectiveTurns -= 0.6;
+      mateHandValue += 5;
+    }
+
+    for (const move of state.moveHistory) {
+      if (move.seat !== teammateSeat) continue;
+      if (!move.isPass && move.pattern) {
+        if (move.pattern.type === 'BOMB' || move.pattern.type === 'ROCKET' || move.pattern.length >= 5) {
+          teammateEffectiveTurns -= 0.35;
+          mateHandValue += 3;
+        }
+      } else if (move.isPass && move.lastPlayBefore?.seat === landlordSeat) {
+        if (move.lastPlayBefore.pattern.mainRank <= Rank.QUEEN) {
+          teammateEffectiveTurns += 0.45;
+          mateHandValue -= 3;
+        }
+      }
+    }
+    teammateEffectiveTurns = Math.max(1, Math.min(teammateCards, teammateEffectiveTurns));
+  }
+
+  let role: FarmerDynamicRole = 'balanced';
+  if (teammateNearWin) {
+    role = 'support';
+  } else if (
+    teammateEffectiveTurns + 1.1 <= myDecomp.effectiveTurns ||
+    (teammateCards + 3 <= state.hands[seat].length && myDecomp.effectiveTurns >= 4) ||
+    (canSeeTeammate && mateHandValue >= myDecomp.handValue + 10)
+  ) {
+    role = 'support';
+  } else if (
+    myDecomp.effectiveTurns + 1.1 <= teammateEffectiveTurns ||
+    (state.hands[seat].length + 3 <= teammateCards && myDecomp.controlValue >= 3.5) ||
+    (canSeeTeammate && myDecomp.handValue >= mateHandValue + 10)
+  ) {
+    role = 'attacker';
+  }
+
+  return {
+    role,
+    teammateCards,
+    myEffectiveTurns: myDecomp.effectiveTurns,
+    teammateEffectiveTurns,
+    teammateNearWin,
+  };
+}
+
 /** Decide whether AI wants to CALL / GRAB / PASS during BIDDING. */
 export function decideBidAction(
   state: GameState,
@@ -54,22 +194,69 @@ export function decideBidAction(
     counts.set(c.rank, (counts.get(c.rank) ?? 0) + 1);
   }
   const twos = counts.get(Rank.TWO) ?? 0;
+  const aces = counts.get(Rank.ACE) ?? 0;
   const hasSJ = counts.has(Rank.SMALL_JOKER);
   const hasBJ = counts.has(Rank.BIG_JOKER);
 
   // Hand strength metric for bidding
-  let bidScore = decomp.controlValue * 1.4 - decomp.effectiveTurns * 1.1 + twos * 0.6;
-  if (hasBJ) bidScore += 1.2;
-  if (hasSJ) bidScore += 0.8;
+  let bidScore =
+    decomp.controlValue * 1.4 -
+    decomp.effectiveTurns * 1.1 +
+    twos * 0.6 +
+    aces * 0.25;
+  if (hasBJ) bidScore += 1.25;
+  if (hasSJ) bidScore += 0.85;
+
   if (difficulty === 'casual') {
-    bidScore += 0.5;
+    bidScore += 0.55;
+    if (state.firstCallerSeat === null) {
+      return bidScore >= -1.5 ? 'CALL' : 'PASS';
+    }
+    const casualThreshold = 1.2 + state.grabCount * 1.8;
+    return bidScore >= casualThreshold ? 'GRAB' : 'PASS';
+  }
+
+  // Seat position & bidding sequence context
+  const passedCount = state.passedBeforeCall.length;
+  if (state.firstCallerSeat === null) {
+    if (passedCount === 2) {
+      // Last bidder after two passes: calling secures landlord with 0 competition
+      bidScore += 0.9;
+    } else if (state.bidHistory.length === 0) {
+      // First bidder faces two potential grabbers
+      bidScore -= 0.35;
+    }
+  } else {
+    if (seat === state.firstCallerSeat) {
+      // Counter-grabbing with knowledge of initial call
+      bidScore += 0.25;
+    } else if (passedCount === 1) {
+      // One opponent already passed initial call
+      bidScore += 0.4;
+    }
+  }
+
+  // Mingpai awareness (only inspect visible mingpai hands!)
+  if (state.mingpaiSeats.includes(seat)) {
+    bidScore += 2.4;
+  }
+  for (const other of state.mingpaiSeats) {
+    if (other === seat) continue;
+    const oppDecomp = decomposeHand(state.hands[other]);
+    if (oppDecomp.handValue >= 46 || oppDecomp.effectiveTurns <= 5 || oppDecomp.bombCount >= 1) {
+      bidScore -= 2.8;
+    } else if (oppDecomp.handValue <= 30) {
+      bidScore += 1.1;
+    }
   }
 
   if (state.firstCallerSeat === null) {
     return bidScore >= -1.5 ? 'CALL' : 'PASS';
   }
 
-  const grabThreshold = 1.5 + state.grabCount * 2.5;
+  // Grab threshold escalates with grabCount (multiplier = 2^grabCount)
+  const grabMultiplierPenalty = difficulty === 'master' ? 2.75 : 2.5;
+  const grabThreshold = 1.5 + state.grabCount * grabMultiplierPenalty;
   return bidScore >= grabThreshold ? 'GRAB' : 'PASS';
 }
 
@@ -80,12 +267,74 @@ export function decideDoubleChoice(
   difficulty: AIDifficulty = 'intermediate',
 ): DoubleChoice {
   const decomp = decomposeHand(state.hands[seat]);
-  const isLandlord = seat === state.landlordSeat;
-  const strength = decomp.handValue + (isLandlord ? 3 : 0);
+  const landlordSeat = state.landlordSeat ?? 0;
+  const isLandlord = seat === landlordSeat;
+  let strength = decomp.handValue + (isLandlord ? 3 : 0);
 
   if (difficulty === 'casual') {
     return strength >= 40 ? 2 : 1;
   }
+
+  const pos = getPlayerPosition(seat, landlordSeat);
+  const teammateSeat = getTeammateSeat(seat, landlordSeat);
+
+  // 1. Grab count risk discipline (already high public multiplier)
+  if (state.grabCount >= 2) {
+    strength -= (state.grabCount - 1) * 3.0;
+  }
+
+  // 2. Seat order & observed double choices (doubling runs landlord -> down -> up)
+  if (!isLandlord) {
+    const landlordDbl = state.doubleChoices[landlordSeat];
+    if (landlordDbl === 4 && !decomp.hasRocket && decomp.bombCount < 2) {
+      strength -= 5.5;
+    } else if (landlordDbl === 2) {
+      strength -= 2.0;
+    }
+
+    if (pos === 'landlord_up' && teammateSeat !== null) {
+      const mateDbl = state.doubleChoices[teammateSeat];
+      if (mateDbl === 4) strength += 3.5;
+      else if (mateDbl === 2) strength += 2.0;
+    }
+  }
+
+  // 3. Mingpai awareness (only inspect visible mingpai hands!)
+  for (const mSeat of state.mingpaiSeats) {
+    if (mSeat === seat) {
+      strength += 3.0;
+      continue;
+    }
+    const mDecomp = decomposeHand(state.hands[mSeat]);
+    const isOpponent = isLandlord || mSeat === landlordSeat;
+    if (isOpponent) {
+      if (mDecomp.handValue >= 48 || mDecomp.effectiveTurns <= 4 || (mDecomp.hasRocket && mDecomp.bombCount >= 1)) {
+        strength -= 7.0;
+      } else if (mDecomp.handValue <= 30) {
+        strength += 4.0;
+      }
+    } else {
+      // Visible farmer teammate is strong
+      if (mDecomp.handValue >= 44 || mDecomp.effectiveTurns <= 5) {
+        strength += 4.5;
+      }
+    }
+  }
+
+  if (difficulty === 'master') {
+    if (
+      strength >= 50 ||
+      (decomp.hasRocket && decomp.bombCount >= 1) ||
+      (decomp.effectiveTurns <= 4 && decomp.controlValue >= 5)
+    ) {
+      return 4;
+    }
+    if (strength >= 33 || decomp.bombCount >= 1 || decomp.hasRocket) {
+      return 2;
+    }
+    return 1;
+  }
+
   if (strength >= 48 || (decomp.hasRocket && decomp.bombCount >= 1) || decomp.effectiveTurns <= 4) {
     return 4;
   }
@@ -108,11 +357,23 @@ interface ScoredCandidate {
   score: number;
 }
 
+function handHasPair(hand: Card[]): boolean {
+  const counts = new Map<Rank, number>();
+  for (const c of hand) {
+    if (c.rank >= Rank.SMALL_JOKER) continue;
+    const next = (counts.get(c.rank) ?? 0) + 1;
+    if (next >= 2) return true;
+    counts.set(c.rank, next);
+  }
+  return false;
+}
+
 function evaluateCandidateScore(
   state: GameState,
   seat: Seat,
   candidate: { isPass: boolean; pattern: HandPattern | null; cards: Card[] },
   difficulty: AIDifficulty,
+  options?: ChooseMoveOptions,
 ): number {
   const hand = state.hands[seat];
   const landlordSeat = state.landlordSeat ?? 0;
@@ -125,12 +386,20 @@ function evaluateCandidateScore(
   const opponents: Seat[] =
     pos === 'landlord' ? [nextSeat(landlordSeat), nextSeat(nextSeat(landlordSeat))] : [landlordSeat];
   const minOpponentCards = Math.min(...opponents.map((s) => state.hands[s].length));
-  const teammateCards = teammateSeat !== null ? state.hands[teammateSeat].length : 99;
+
+  const canSeeMate =
+    teammateSeat !== null && canSeeSeatHand(state, seat, teammateSeat, options);
+  const farmerAssessment =
+    pos === 'landlord'
+      ? null
+      : assessFarmerDynamicRole(state, seat, beforeDecomp, canSeeMate);
+  const teammateCards = farmerAssessment?.teammateCards ?? 99;
+  const farmerRole = farmerAssessment?.role ?? 'balanced';
 
   if (candidate.isPass) {
     let passScore = -6;
 
-    // Teammate cooperation: do NOT fight teammate who holds strong/low-card control
+    // Teammate cooperation: yield to teammate who is near win, strong, or holds control
     if (teammateSeat !== null && prevSeat === teammateSeat && prevPattern) {
       const strongLead =
         prevPattern.type === 'BOMB' ||
@@ -140,16 +409,24 @@ function evaluateCandidateScore(
         (prevPattern.type === 'PAIR' && prevPattern.mainRank >= Rank.TEN) ||
         (prevPattern.type === 'TRIPLE' && prevPattern.mainRank >= Rank.NINE);
 
-      if (teammateCards <= 5 || strongLead) {
-        passScore += 58;
+      if (teammateCards <= 5 || strongLead || farmerRole === 'support') {
+        passScore += farmerRole === 'support' ? 66 : 58;
       } else {
-        passScore += 18;
+        passScore += 20;
       }
     } else if (prevSeat === landlordSeat && minOpponentCards <= 2) {
-      // Opponent (landlord) is about to win; passing is terrible if we could block
-      passScore -= 45;
+      passScore -= 48;
     } else if (pos === 'landlord' && minOpponentCards <= 2) {
-      passScore -= 40;
+      passScore -= 42;
+    } else if (
+      farmerRole === 'support' &&
+      prevSeat === landlordSeat &&
+      prevPattern &&
+      (prevPattern.type === 'SINGLE' || prevPattern.type === 'PAIR') &&
+      prevPattern.mainRank <= Rank.TEN
+    ) {
+      // Support farmer prefers bleeding landlord instead of passively letting landlord slip small cards
+      passScore -= 10;
     }
 
     return passScore;
@@ -169,9 +446,10 @@ function evaluateCandidateScore(
 
   // 1. Hand structure improvement & turn reduction
   const turnDiff = beforeDecomp.effectiveTurns - afterDecomp.effectiveTurns;
-  score += turnDiff * 14 + (afterDecomp.handValue - beforeDecomp.handValue) * 0.9;
+  const structWeight = difficulty === 'casual' ? 10 : 14;
+  const valueWeight = difficulty === 'casual' ? 0.6 : 0.9;
+  score += turnDiff * structWeight + (afterDecomp.handValue - beforeDecomp.handValue) * valueWeight;
 
-  // Prefer shedding low/multi-card patterns cleanly when leading
   if (prevPattern === null) {
     score += Math.min(pattern.cards.length, 6) * 2.2;
     score -= (pattern.mainRank - Rank.THREE) * 0.65;
@@ -198,7 +476,6 @@ function evaluateCandidateScore(
       score += 26;
     }
   } else {
-    // Penalize breaking an existing bomb or rocket
     if (beforeDecomp.bombCount > afterDecomp.bombCount) {
       score -= 44;
     }
@@ -207,62 +484,86 @@ function evaluateCandidateScore(
     }
   }
 
-  // 3. Role-specific tactics
-  if (pos === 'landlord_up') {
-    const downSeat = nextSeat(landlordSeat);
-    const downCards = state.hands[downSeat].length;
+  // 3. Dynamic Farmer Cooperation & Role-Specific Tactics
+  const hasPair = teammateCards === 2 ? handHasPair(hand) : false;
 
+  if (pos !== 'landlord') {
     if (prevPattern === null) {
-      if (downCards === 1) {
-        // Feed smallest single to 1-card teammate
+      if (teammateCards === 1) {
+        // ANY farmer (landlord_up OR landlord_down) feeds smallest single when teammate has 1 card left
         if (pattern.type === 'SINGLE') {
-          score += 135 - pattern.mainRank * 4.5;
+          score += 138 - pattern.mainRank * 4.5;
         } else {
-          score -= 35;
+          score -= 36;
         }
-      } else if (downCards === 2) {
-        // Feed smallest pair to 2-card teammate
+      } else if (teammateCards === 2) {
+        // ANY farmer feeds smallest pair when teammate has 2 cards left
         if (pattern.type === 'PAIR') {
-          score += 125 - pattern.mainRank * 4.5;
+          score += 128 - pattern.mainRank * 4.5;
+        } else if (hasPair) {
+          score -= 22;
         }
-      } else {
-        // 守门员顶牌 (Guard/Top against landlord): block small singles/pairs
+      } else if (pos === 'landlord_up' || farmerRole === 'support') {
+        // Guard / Support farmer: top with J..A to block/bleed landlord instead of leaking low singles
+        const guardScale = farmerRole === 'support' ? 1.15 : 1.0;
         if (pattern.type === 'SINGLE') {
           if (pattern.mainRank >= Rank.JACK && pattern.mainRank <= Rank.ACE) {
-            score += 28 + (pattern.mainRank - Rank.JACK) * 4;
+            score += (28 + (pattern.mainRank - Rank.JACK) * 4) * guardScale;
           } else if (pattern.mainRank <= Rank.NINE) {
-            score -= 26 + (Rank.TEN - pattern.mainRank) * 2;
+            score -= (26 + (Rank.TEN - pattern.mainRank) * 2) * guardScale;
           }
         } else if (pattern.type === 'PAIR') {
           if (pattern.mainRank >= Rank.JACK && pattern.mainRank <= Rank.ACE) {
-            score += 18 + (pattern.mainRank - Rank.JACK) * 3;
+            score += (18 + (pattern.mainRank - Rank.JACK) * 3) * guardScale;
           } else if (pattern.mainRank <= Rank.SEVEN) {
-            score -= 14;
+            score -= 14 * guardScale;
           }
         }
+      } else if (farmerRole === 'attacker') {
+        // Attacker farmer prioritizes shedding chains/triples efficiently to race to 0
+        if (pattern.cards.length >= 4) {
+          score += 8;
+        }
+      }
+    } else if (prevSeat === landlordSeat && (farmerRole === 'support' || pos === 'landlord_up')) {
+      // Support farmer actively tops landlord's low/medium leads with J..A to bleed landlord's 2/Jokers
+      if (
+        pattern.type === 'SINGLE' &&
+        prevPattern.mainRank <= Rank.TEN &&
+        pattern.mainRank >= Rank.JACK &&
+        pattern.mainRank <= Rank.ACE
+      ) {
+        score += 16;
+      } else if (
+        pattern.type === 'PAIR' &&
+        prevPattern.mainRank <= Rank.NINE &&
+        pattern.mainRank >= Rank.TEN &&
+        pattern.mainRank <= Rank.ACE
+      ) {
+        score += 14;
       }
     }
-  }
 
-  // Teammate cooperation when following teammate
-  if (teammateSeat !== null && prevSeat === teammateSeat && prevPattern) {
-    const strongLead =
-      prevPattern.type === 'BOMB' ||
-      prevPattern.type === 'ROCKET' ||
-      prevPattern.length >= 4 ||
-      (prevPattern.type === 'SINGLE' && prevPattern.mainRank >= Rank.JACK) ||
-      (prevPattern.type === 'PAIR' && prevPattern.mainRank >= Rank.TEN);
+    // Do NOT overtake teammate unless finishing immediately or strictly better
+    if (teammateSeat !== null && prevSeat === teammateSeat && prevPattern) {
+      const strongLead =
+        prevPattern.type === 'BOMB' ||
+        prevPattern.type === 'ROCKET' ||
+        prevPattern.length >= 4 ||
+        (prevPattern.type === 'SINGLE' && prevPattern.mainRank >= Rank.JACK) ||
+        (prevPattern.type === 'PAIR' && prevPattern.mainRank >= Rank.TEN);
 
-    if (teammateCards <= 5 || strongLead) {
-      score -= 62;
-    } else if (pattern.mainRank >= Rank.TWO) {
-      score -= 32;
+      if (teammateCards <= 5 || strongLead || farmerRole === 'support') {
+        score -= farmerRole === 'support' ? 70 : 62;
+      } else if (pattern.mainRank >= Rank.TWO && afterDecomp.effectiveTurns > 1) {
+        score -= 32;
+      }
     }
   }
 
   // 4. Opponent alarm defense (防报单 / 防报双)
   if (minOpponentCards === 1 && prevPattern === null) {
-    const feedingTeammate = pos === 'landlord_up' && teammateCards === 1;
+    const feedingTeammate = teammateSeat !== null && teammateCards === 1;
     if (!feedingTeammate) {
       if (pattern.type === 'SINGLE') {
         score += pattern.mainRank >= Rank.KING ? 24 : -75 + pattern.mainRank * 3.5;
@@ -271,13 +572,13 @@ function evaluateCandidateScore(
       }
     }
   } else if (minOpponentCards === 2 && prevPattern === null) {
-    const feedingTeammate = pos === 'landlord_up' && teammateCards === 2;
+    const feedingTeammate = teammateSeat !== null && teammateCards === 2 && hasPair;
     if (!feedingTeammate && pattern.type === 'PAIR') {
       score += pattern.mainRank >= Rank.KING ? 18 : -50 + pattern.mainRank * 2.5;
     }
   }
 
-  // 5. Card counting bonus (Intermediate uses basic awareness; Master uses full external counts)
+  // 5. Card counting bonus (Intermediate & Master only; Casual omits card counting)
   if (difficulty === 'master' || difficulty === 'intermediate') {
     const ext = computeExternalRemainingCounts(hand, state.moveHistory);
     const boss = isBossPattern(pattern, ext, true);
@@ -561,19 +862,323 @@ export function solveEndgameAlphaBeta(
   return null;
 }
 
+function applyMoveToSim(
+  sim: SimState,
+  move: { isPass: boolean; cards: Card[]; pattern: HandPattern | null },
+): SimState {
+  if (move.isPass) {
+    const nextPass = sim.passCount + 1;
+    const reset = nextPass >= 2;
+    return {
+      hands: sim.hands,
+      turn: nextSeat(sim.turn),
+      lastPlay: reset ? null : sim.lastPlay,
+      passCount: reset ? 0 : nextPass,
+      landlord: sim.landlord,
+    };
+  }
+
+  const playedIds = new Set(move.cards.map((c) => c.id));
+  const nextHands: [Card[], Card[], Card[]] = [
+    sim.turn === 0 ? sim.hands[0].filter((c) => !playedIds.has(c.id)) : sim.hands[0],
+    sim.turn === 1 ? sim.hands[1].filter((c) => !playedIds.has(c.id)) : sim.hands[1],
+    sim.turn === 2 ? sim.hands[2].filter((c) => !playedIds.has(c.id)) : sim.hands[2],
+  ];
+
+  return {
+    hands: nextHands,
+    turn: nextSeat(sim.turn),
+    lastPlay: { seat: sim.turn, pattern: move.pattern! },
+    passCount: 0,
+    landlord: sim.landlord,
+  };
+}
+
+function evaluateSampledWorldWinProb(sim: SimState, perspectiveSeat: Seat): number {
+  const landlord = sim.landlord;
+  const f1 = nextSeat(landlord);
+  const f2 = nextSeat(f1);
+
+  if (sim.hands[landlord].length === 0) {
+    return perspectiveSeat === landlord ? 1 : 0;
+  }
+  if (sim.hands[f1].length === 0 || sim.hands[f2].length === 0) {
+    return perspectiveSeat === landlord ? 0 : 1;
+  }
+
+  const dL = decomposeHand(sim.hands[landlord]);
+  const d1 = decomposeHand(sim.hands[f1]);
+  const d2 = decomposeHand(sim.hands[f2]);
+
+  const lControlBonus = sim.turn === landlord && sim.lastPlay === null ? 5.5 : 0;
+  const fControlBonus = sim.turn !== landlord && sim.lastPlay === null ? 5.5 : 0;
+  const lUrgency = sim.hands[landlord].length <= 2 ? (3 - sim.hands[landlord].length) * 7 : 0;
+  const minFarmerLen = Math.min(sim.hands[f1].length, sim.hands[f2].length);
+  const fUrgency = minFarmerLen <= 2 ? (3 - minFarmerLen) * 7 : 0;
+
+  const landlordScore = dL.handValue + lControlBonus + lUrgency - sim.hands[landlord].length * 0.55;
+  const bestFarmer = Math.max(d1.handValue, d2.handValue);
+  const supportFarmer = Math.min(d1.handValue, d2.handValue);
+  const farmerScore =
+    bestFarmer + (supportFarmer - 12) * 0.25 + fControlBonus + fUrgency - minFarmerLen * 0.55;
+
+  const diff = landlordScore - farmerScore;
+  const landlordProb = 1 / (1 + Math.exp(-diff / 11));
+  return perspectiveSeat === landlord ? landlordProb : 1 - landlordProb;
+}
+
+/**
+ * Ultra-fast tactical rollout policy used inside PIMC midgame lookahead.
+ * Runs without `decomposeHand` per move to stay comfortably inside <100ms total budget.
+ */
+function pickFastRolloutMove(
+  sim: SimState,
+): { isPass: boolean; cards: Card[]; pattern: HandPattern | null } {
+  const hand = sim.hands[sim.turn];
+  const prev = sim.lastPlay?.pattern ?? null;
+  const prevSeat = sim.lastPlay?.seat ?? null;
+  const moves = findBeatingPlays(hand, prev);
+
+  if (moves.length === 0) {
+    return { isPass: true, cards: [], pattern: null };
+  }
+
+  // Immediate win
+  for (const m of moves) {
+    if (m.cards.length === hand.length) {
+      return { isPass: false, cards: m.cards, pattern: m };
+    }
+  }
+
+  const isLandlord = sim.turn === sim.landlord;
+  const teammate = isLandlord ? null : getTeammateSeat(sim.turn, sim.landlord);
+  const teammateCards = teammate !== null ? sim.hands[teammate].length : 99;
+  const minOppCards = isLandlord
+    ? Math.min(sim.hands[nextSeat(sim.landlord)].length, sim.hands[nextSeat(nextSeat(sim.landlord))].length)
+    : sim.hands[sim.landlord].length;
+
+  let bestScore = -1e9;
+  let bestMove: { isPass: boolean; cards: Card[]; pattern: HandPattern | null } = {
+    isPass: false,
+    cards: moves[0].cards,
+    pattern: moves[0],
+  };
+
+  if (prev !== null) {
+    let passScore = -4;
+    if (teammate !== null && prevSeat === teammate) {
+      if (teammateCards <= 4 || prev.mainRank >= Rank.JACK || prev.length >= 4) {
+        passScore += 48;
+      } else {
+        passScore += 15;
+      }
+    } else if (minOppCards <= 2 && prevSeat !== teammate) {
+      passScore -= 42;
+    }
+    bestScore = passScore;
+    bestMove = { isPass: true, cards: [], pattern: null };
+  }
+
+  for (const m of moves) {
+    let sc = m.cards.length * 4.2;
+    if (prev === null) {
+      sc -= (m.mainRank - Rank.THREE) * 0.7;
+      if (teammate !== null && teammateCards === 1) {
+        sc += m.type === 'SINGLE' ? 110 - m.mainRank * 4 : -25;
+      } else if (teammate !== null && teammateCards === 2 && m.type === 'PAIR') {
+        sc += 100 - m.mainRank * 4;
+      } else if (!isLandlord && sim.turn === nextSeat(nextSeat(sim.landlord)) && m.type === 'SINGLE') {
+        // landlord_up guard
+        if (m.mainRank >= Rank.JACK && m.mainRank <= Rank.ACE) sc += 20;
+        else if (m.mainRank <= Rank.NINE) sc -= 18;
+      }
+      if (minOppCards === 1 && !(teammate !== null && teammateCards === 1) && m.type === 'SINGLE') {
+        sc += m.mainRank >= Rank.KING ? 18 : -50;
+      }
+    } else {
+      sc -= (m.mainRank - prev.mainRank) * 1.1;
+      if (teammate !== null && prevSeat === teammate) {
+        if (teammateCards <= 4 || prev.mainRank >= Rank.JACK || prev.length >= 4) {
+          sc -= 50;
+        } else if (m.mainRank >= Rank.TWO) {
+          sc -= 25;
+        }
+      }
+    }
+
+    if (m.type === 'BOMB') {
+      sc += prev !== null && minOppCards <= 2 && prevSeat !== teammate ? 22 : -36;
+    } else if (m.type === 'ROCKET') {
+      sc += prev !== null && minOppCards <= 2 && prevSeat !== teammate ? 24 : -42;
+    }
+
+    if (sc > bestScore) {
+      bestScore = sc;
+      bestMove = { isPass: false, cards: m.cards, pattern: m };
+    }
+  }
+
+  return bestMove;
+}
+
+function runPimcLookahead(
+  state: GameState,
+  seat: Seat,
+  candidates: ScoredCandidate[],
+  rng: () => number,
+): AIMoveDecision {
+  const startTime = Date.now();
+  const BUDGET_MS = 95;
+  const landlord = state.landlordSeat ?? 0;
+  const prevPattern = state.lastPlay?.pattern ?? null;
+
+  const maxHand = Math.max(state.hands[0].length, state.hands[1].length, state.hands[2].length);
+  const totalCards = state.hands[0].length + state.hands[1].length + state.hands[2].length;
+  const isEndgame = maxHand <= 8 && totalCards <= 19;
+
+  // Select top competitive candidates (wider window in endgame to catch non-greedy traps)
+  const scoreWindow = isEndgame ? 65 : 36;
+  const competitive = candidates.filter((c) => c.score >= candidates[0].score - scoreWindow);
+  const pool: ScoredCandidate[] = competitive.slice(0, Math.min(6, competitive.length));
+  if (prevPattern !== null) {
+    const passCand = candidates.find((c) => c.isPass);
+    if (passCand && !pool.includes(passCand) && passCand.score >= candidates[0].score - 45) {
+      pool.push(passCand);
+    }
+  }
+  if (pool.length <= 1) {
+    return {
+      ...candidates[0],
+      usedEndgameSolver: false,
+    };
+  }
+
+  const sampleCount = 8;
+  const determinizedHands = sampleDeterminizedHands(state, seat, sampleCount, rng);
+
+  const winSums = new Array<number>(pool.length).fill(0);
+  const sampleCounts = new Array<number>(pool.length).fill(0);
+  const myIsLandlord = seat === landlord;
+
+  for (let sIdx = 0; sIdx < determinizedHands.length; sIdx++) {
+    if (sIdx > 0 && Date.now() - startTime >= BUDGET_MS) {
+      break;
+    }
+    const sampledHands = determinizedHands[sIdx];
+    const baseSim: SimState = {
+      hands: sampledHands,
+      turn: seat,
+      lastPlay: state.lastPlay,
+      passCount: state.passCount,
+      landlord,
+    };
+
+    for (let cIdx = 0; cIdx < pool.length; cIdx++) {
+      if (Date.now() - startTime >= BUDGET_MS) {
+        break;
+      }
+
+      const cand = pool[cIdx];
+      let sim = applyMoveToSim(baseSim, cand);
+      let winProb: number;
+
+      if (sim.hands[seat].length === 0) {
+        winProb = 1.0;
+      } else if (isEndgame) {
+        const simState: GameState = {
+          ...state,
+          phase: 'PLAYING',
+          hands: sim.hands,
+          currentTurn: sim.turn,
+          lastPlay: sim.lastPlay,
+          passCount: sim.passCount,
+        };
+        const solved = solveEndgameAlphaBeta(simState, sim.turn, 2200, 10, 9);
+        if (solved && (solved.solvedOutcome === 'WIN' || solved.solvedOutcome === 'LOSS')) {
+          const turnIsMySide = (sim.turn === landlord) === myIsLandlord;
+          if (solved.solvedOutcome === 'WIN') {
+            winProb = turnIsMySide ? 1.0 : 0.0;
+          } else {
+            winProb = turnIsMySide ? 0.0 : 1.0;
+          }
+        } else {
+          winProb = evaluateSampledWorldWinProb(sim, seat);
+        }
+      } else {
+        // 3-ply rollout after our move (4 total plies including root move)
+        const f1 = nextSeat(landlord);
+        const f2 = nextSeat(f1);
+        let finished = false;
+        for (let step = 0; step < 3; step++) {
+          if (
+            sim.hands[landlord].length === 0 ||
+            sim.hands[f1].length === 0 ||
+            sim.hands[f2].length === 0
+          ) {
+            finished = true;
+            break;
+          }
+          const rolloutMove = pickFastRolloutMove(sim);
+          sim = applyMoveToSim(sim, rolloutMove);
+        }
+        if (
+          finished ||
+          sim.hands[landlord].length === 0 ||
+          sim.hands[f1].length === 0 ||
+          sim.hands[f2].length === 0
+        ) {
+          const landlordWon = sim.hands[landlord].length === 0;
+          winProb = landlordWon === myIsLandlord ? 1.0 : 0.0;
+        } else {
+          winProb = evaluateSampledWorldWinProb(sim, seat);
+        }
+      }
+
+      winSums[cIdx] += winProb;
+      sampleCounts[cIdx] += 1;
+    }
+  }
+
+  let bestIdx = 0;
+  let bestCombined = -1e9;
+  for (let cIdx = 0; cIdx < pool.length; cIdx++) {
+    const cnt = sampleCounts[cIdx];
+    const avgProb = cnt > 0 ? winSums[cIdx] / cnt : 0.5;
+    // Combine sampled win probability (0..1000) with heuristic prior
+    const combined = avgProb * 1000 + pool[cIdx].score * 0.6;
+    if (combined > bestCombined) {
+      bestCombined = combined;
+      bestIdx = cIdx;
+    }
+  }
+
+  const chosen = pool[bestIdx];
+  return {
+    ...chosen,
+    usedEndgameSolver: false,
+  };
+}
+
 /**
  * Choose the best play or pass for `seat` according to `difficulty`.
+ * - `casual`: shallow heuristic + controlled random mistakes
+ * - `intermediate`: full hand decomposition + card counting + 1-ply dynamic farmer cooperation
+ * - `master`:
+ *    - puzzle / all-mingpai: exact Alpha-Beta endgame solver
+ *    - standard hidden-hand: zero peeking; belief-weighted PIMC lookahead (rollout / endgame voting)
  */
 export function chooseBestMove(
   state: GameState,
   seat: Seat,
   difficulty: AIDifficulty = 'master',
   rng: () => number = Math.random,
+  options?: ChooseMoveOptions,
 ): AIMoveDecision {
   const hand = state.hands[seat];
   const prevPattern = state.lastPlay?.pattern ?? null;
 
-  if (difficulty === 'master') {
+  // Only invoke open-hand Alpha-Beta directly when all hands are publicly visible (puzzle or all mingpai)
+  if (difficulty === 'master' && isPerfectInformationGame(state, seat, options)) {
     const solved = solveEndgameAlphaBeta(state, seat);
     if (solved && solved.solvedOutcome === 'WIN') return solved;
   }
@@ -582,7 +1187,13 @@ export function chooseBestMove(
     isPass: false,
     cards: pattern.cards,
     pattern,
-    score: evaluateCandidateScore(state, seat, { isPass: false, pattern, cards: pattern.cards }, difficulty),
+    score: evaluateCandidateScore(
+      state,
+      seat,
+      { isPass: false, pattern, cards: pattern.cards },
+      difficulty,
+      options,
+    ),
   }));
 
   if (prevPattern !== null) {
@@ -590,7 +1201,13 @@ export function chooseBestMove(
       isPass: true,
       cards: [],
       pattern: null,
-      score: evaluateCandidateScore(state, seat, { isPass: true, pattern: null, cards: [] }, difficulty),
+      score: evaluateCandidateScore(
+        state,
+        seat,
+        { isPass: true, pattern: null, cards: [] },
+        difficulty,
+        options,
+      ),
     });
   }
 
@@ -606,16 +1223,18 @@ export function chooseBestMove(
 
   candidates.sort((a, b) => b.score - a.score);
 
-  // Instant win is never randomized even on casual
-  if (candidates[0].score >= 90000) {
+  // Instant 1-turn win is never randomized or delayed
+  if (candidates[0].score >= 90000 || candidates.length === 1) {
     return {
       ...candidates[0],
       usedEndgameSolver: false,
     };
   }
 
-  if (difficulty === 'casual' && candidates.length > 1) {
-    const pool = candidates.slice(0, Math.min(3, candidates.length)).filter((c) => c.score >= candidates[0].score - 22);
+  if (difficulty === 'casual') {
+    const pool = candidates
+      .slice(0, Math.min(4, candidates.length))
+      .filter((c) => c.score >= candidates[0].score - 28);
     if (pool.length > 1) {
       const picked = pool[Math.floor(rng() * pool.length)];
       return {
@@ -623,8 +1242,17 @@ export function chooseBestMove(
         usedEndgameSolver: false,
       };
     }
+    return {
+      ...candidates[0],
+      usedEndgameSolver: false,
+    };
   }
 
+  if (difficulty === 'master') {
+    return runPimcLookahead(state, seat, candidates, rng);
+  }
+
+  // Intermediate: 1-ply full heuristic + card counting + farmer synergy
   return {
     ...candidates[0],
     usedEndgameSolver: false,

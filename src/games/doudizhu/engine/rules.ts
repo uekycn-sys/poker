@@ -323,57 +323,170 @@ export function matchPatternToBeat(cards: Card[], prevPattern: HandPattern | nul
   return all.find((pattern) => canPatternBeat(pattern, prevPattern)) ?? null;
 }
 
+function getKickerSignature(cards: Card[]): string {
+  return cards
+    .map((c) => c.rank)
+    .sort((a, b) => a - b)
+    .join(',');
+}
+
+function dedupeKickerVariants(variants: Card[][], limit = 3): Card[][] {
+  const seen = new Set<string>();
+  const unique: Card[][] = [];
+  for (const variant of variants) {
+    const sig = getKickerSignature(variant);
+    if (!seen.has(sig)) {
+      seen.add(sig);
+      unique.push(variant);
+      if (unique.length >= limit) break;
+    }
+  }
+  return unique;
+}
+
 /**
- * Select `count` kicker cards from `hand` after removing `bodyCards`,
- * preferring pure singles (multiplicity 1) -> pairs -> triples -> bombs, ascending by rank.
+ * Identify ranks in `remCounts` whose removal would break a straight (>=5),
+ * pair-straight (>=3 pairs), or airplane (>=2 triples).
  */
-function pickSingleKickers(hand: Card[], bodyCards: Card[], count: number): Card[] | null {
+function getChainBreakRanks(remCounts: Map<Rank, number>, mode: 'single' | 'pair'): Set<Rank> {
+  const critical = new Set<Rank>();
+  const minPairOrSingle = mode === 'single' ? 1 : 2;
+
+  // Straights (>=5 consecutive single ranks)
+  if (mode === 'single') {
+    let start: number = Rank.THREE;
+    while (start <= Rank.ACE) {
+      if ((remCounts.get(start as Rank) ?? 0) >= 1) {
+        let end: number = start;
+        while (end + 1 <= Rank.ACE && (remCounts.get((end + 1) as Rank) ?? 0) >= 1) {
+          end++;
+        }
+        if (end - start + 1 >= 5) {
+          for (let r = start; r <= end; r++) {
+            if ((remCounts.get(r as Rank) ?? 0) === 1) {
+              critical.add(r as Rank);
+            }
+          }
+        }
+        start = end + 1;
+      } else {
+        start++;
+      }
+    }
+  }
+
+  // Pair straights (>=3 consecutive pairs)
+  let psStart: number = Rank.THREE;
+  while (psStart <= Rank.ACE) {
+    if ((remCounts.get(psStart as Rank) ?? 0) >= 2) {
+      let end: number = psStart;
+      while (end + 1 <= Rank.ACE && (remCounts.get((end + 1) as Rank) ?? 0) >= 2) {
+        end++;
+      }
+      if (end - psStart + 1 >= 3) {
+        for (let r = psStart; r <= end; r++) {
+          const cnt = remCounts.get(r as Rank) ?? 0;
+          if (cnt >= minPairOrSingle && cnt <= 2) {
+            critical.add(r as Rank);
+          }
+        }
+      }
+      psStart = end + 1;
+    } else {
+      psStart++;
+    }
+  }
+
+  // Airplanes (>=2 consecutive triples)
+  let apStart: number = Rank.THREE;
+  while (apStart <= Rank.ACE) {
+    if ((remCounts.get(apStart as Rank) ?? 0) >= 3) {
+      let end: number = apStart;
+      while (end + 1 <= Rank.ACE && (remCounts.get((end + 1) as Rank) ?? 0) >= 3) {
+        end++;
+      }
+      if (end - apStart + 1 >= 2) {
+        for (let r = apStart; r <= end; r++) {
+          if ((remCounts.get(r as Rank) ?? 0) === 3) {
+            critical.add(r as Rank);
+          }
+        }
+      }
+      apStart = end + 1;
+    } else {
+      apStart++;
+    }
+  }
+
+  return critical;
+}
+
+/**
+ * Generate up to 3 tactically distinct single-kicker sets of size `count`:
+ * 1) Minimal pure singles ascending (preserves pairs/triples/bombs/rocket)
+ * 2) Chain-preserving minimal singles (avoids breaking straights/pair-straights/airplanes)
+ * 3) High isolated single(s) to shed high non-boss kickers while retaining small control/lead cards
+ */
+function pickSingleKickerVariants(hand: Card[], bodyCards: Card[], count: number): Card[][] {
   const bodyIds = new Set(bodyCards.map((c) => c.id));
   const remaining = hand.filter((c) => !bodyIds.has(c.id));
-  if (remaining.length < count) return null;
+  if (remaining.length < count) return [];
 
   const remCounts = countByRank(remaining);
-  const sorted = [...remaining].sort((a, b) => {
+  const hasBothJokers = remCounts.has(Rank.SMALL_JOKER) && remCounts.has(Rank.BIG_JOKER);
+  const withoutJokers = hasBothJokers ? remaining.filter((c) => !isJoker(c.rank)) : remaining;
+  const pool = withoutJokers.length >= count ? withoutJokers : remaining;
+  const chainCritical = getChainBreakRanks(remCounts, 'single');
+
+  const variants: Card[][] = [];
+
+  // 1. Minimal pure single ascending
+  const minimalOrder = [...pool].sort((a, b) => {
     const multA = remCounts.get(a.rank) ?? 1;
     const multB = remCounts.get(b.rank) ?? 1;
     if (multA !== multB) return multA - multB;
     return a.rank - b.rank;
   });
+  variants.push(minimalOrder.slice(0, count));
 
-  // Avoid breaking a rocket if non-joker kickers are available
-  const hasBothJokers = remCounts.has(Rank.SMALL_JOKER) && remCounts.has(Rank.BIG_JOKER);
-  if (hasBothJokers && remaining.length - 2 >= count) {
-    const withoutJokers = sorted.filter((c) => !isJoker(c.rank));
-    if (withoutJokers.length >= count) {
-      return withoutJokers.slice(0, count);
-    }
-  }
+  // 2. Chain-preserving minimal single
+  const chainSafeOrder = [...pool].sort((a, b) => {
+    const critA = chainCritical.has(a.rank) ? 1 : 0;
+    const critB = chainCritical.has(b.rank) ? 1 : 0;
+    if (critA !== critB) return critA - critB;
+    const multA = remCounts.get(a.rank) ?? 1;
+    const multB = remCounts.get(b.rank) ?? 1;
+    if (multA !== multB) return multA - multB;
+    return a.rank - b.rank;
+  });
+  variants.push(chainSafeOrder.slice(0, count));
 
-  return sorted.slice(0, count);
+  // 3. High single kicker (prefer pure non-2/non-joker descending) to retain low cards for control/feeding
+  const highShedOrder = [...pool].sort((a, b) => {
+    const multA = remCounts.get(a.rank) ?? 1;
+    const multB = remCounts.get(b.rank) ?? 1;
+    if (multA !== multB) return multA - multB;
+    const ctrlA = a.rank >= Rank.TWO ? 1 : 0;
+    const ctrlB = b.rank >= Rank.TWO ? 1 : 0;
+    if (ctrlA !== ctrlB) return ctrlA - ctrlB;
+    return b.rank - a.rank;
+  });
+  variants.push(highShedOrder.slice(0, count));
+
+  return dedupeKickerVariants(variants, 3);
 }
 
 /**
- * Select `pairCount` kicker pairs from `hand` after removing `bodyCards`,
- * preferring pure pairs (multiplicity 2) -> triples -> quads, ascending by rank.
+ * Select `count` kicker cards from `hand` after removing `bodyCards`,
+ * preferring pure singles (multiplicity 1) -> pairs -> triples -> bombs, ascending by rank.
  */
-function pickPairKickers(hand: Card[], bodyCards: Card[], pairCount: number): Card[] | null {
-  const bodyIds = new Set(bodyCards.map((c) => c.id));
-  const remaining = hand.filter((c) => !bodyIds.has(c.id));
-  const byRank = groupCardsByRank(remaining);
+function pickSingleKickers(hand: Card[], bodyCards: Card[], count: number): Card[] | null {
+  return pickSingleKickerVariants(hand, bodyCards, count)[0] ?? null;
+}
 
-  const candidates = [...byRank.entries()]
-    .filter(([rank, arr]) => !isJoker(rank) && arr.length >= 2)
-    .sort((a, b) => {
-      const multA = a[1].length;
-      const multB = b[1].length;
-      const prioA = multA === 2 ? 0 : multA === 3 ? 1 : 2;
-      const prioB = multB === 2 ? 0 : multB === 3 ? 1 : 2;
-      if (prioA !== prioB) return prioA - prioB;
-      return a[0] - b[0];
-    });
-
+function takePairsFromEntries(entries: Array<[Rank, Card[]]>, pairCount: number): Card[] | null {
   const picked: Card[] = [];
-  for (const [, cards] of candidates) {
+  for (const [, cards] of entries) {
     let idx = 0;
     while (idx + 1 < cards.length && picked.length < pairCount * 2) {
       picked.push(cards[idx], cards[idx + 1]);
@@ -381,8 +494,71 @@ function pickPairKickers(hand: Card[], bodyCards: Card[], pairCount: number): Ca
     }
     if (picked.length === pairCount * 2) break;
   }
-
   return picked.length === pairCount * 2 ? picked : null;
+}
+
+/**
+ * Generate up to 3 tactically distinct pair-kicker sets of size `pairCount`:
+ * 1) Minimal pure pairs ascending
+ * 2) Chain-preserving minimal pairs (avoids breaking pair-straights/airplanes)
+ * 3) High pure pairs (prefer <= A) to shed high pairs while retaining small pairs
+ */
+function pickPairKickerVariants(hand: Card[], bodyCards: Card[], pairCount: number): Card[][] {
+  const bodyIds = new Set(bodyCards.map((c) => c.id));
+  const remaining = hand.filter((c) => !bodyIds.has(c.id));
+  const remCounts = countByRank(remaining);
+  const byRank = groupCardsByRank(remaining);
+  const pairEntries = [...byRank.entries()].filter(([rank, arr]) => !isJoker(rank) && arr.length >= 2);
+  if (pairEntries.length === 0) return [];
+
+  const chainCritical = getChainBreakRanks(remCounts, 'pair');
+  const multPrio = (len: number) => (len === 2 ? 0 : len === 3 ? 1 : 2);
+  const variants: Card[][] = [];
+
+  // 1. Minimal pure pairs ascending
+  const minimal = takePairsFromEntries(
+    [...pairEntries].sort((a, b) => {
+      const pDiff = multPrio(a[1].length) - multPrio(b[1].length);
+      return pDiff !== 0 ? pDiff : a[0] - b[0];
+    }),
+    pairCount,
+  );
+  if (minimal) variants.push(minimal);
+
+  // 2. Chain-preserving minimal pairs
+  const chainSafe = takePairsFromEntries(
+    [...pairEntries].sort((a, b) => {
+      const critDiff = (chainCritical.has(a[0]) ? 1 : 0) - (chainCritical.has(b[0]) ? 1 : 0);
+      if (critDiff !== 0) return critDiff;
+      const pDiff = multPrio(a[1].length) - multPrio(b[1].length);
+      return pDiff !== 0 ? pDiff : a[0] - b[0];
+    }),
+    pairCount,
+  );
+  if (chainSafe) variants.push(chainSafe);
+
+  // 3. High pure pairs (prefer <= A) descending
+  const highShed = takePairsFromEntries(
+    [...pairEntries].sort((a, b) => {
+      const pDiff = multPrio(a[1].length) - multPrio(b[1].length);
+      if (pDiff !== 0) return pDiff;
+      const twoDiff = (a[0] === Rank.TWO ? 1 : 0) - (b[0] === Rank.TWO ? 1 : 0);
+      if (twoDiff !== 0) return twoDiff;
+      return b[0] - a[0];
+    }),
+    pairCount,
+  );
+  if (highShed) variants.push(highShed);
+
+  return dedupeKickerVariants(variants, 3);
+}
+
+/**
+ * Select `pairCount` kicker pairs from `hand` after removing `bodyCards`,
+ * preferring pure pairs (multiplicity 2) -> triples -> quads, ascending by rank.
+ */
+function pickPairKickers(hand: Card[], bodyCards: Card[], pairCount: number): Card[] | null {
+  return pickPairKickerVariants(hand, bodyCards, pairCount)[0] ?? null;
 }
 
 function getPatternSignature(pattern: HandPattern): string {
@@ -432,8 +608,7 @@ export function findBeatingPlays(hand: Card[], prevPattern: HandPattern | null):
       const group = byRank.get(r)!;
       if (group.length >= 3) {
         const body = group.slice(0, 3);
-        const k1 = pickSingleKickers(hand, body, 1);
-        if (k1) {
+        for (const k1 of pickSingleKickerVariants(hand, body, 1)) {
           results.push({
             type: 'TRIPLE_WITH_SINGLE',
             mainRank: r,
@@ -442,8 +617,7 @@ export function findBeatingPlays(hand: Card[], prevPattern: HandPattern | null):
             cards: [...body, ...k1],
           });
         }
-        const k2 = pickPairKickers(hand, body, 1);
-        if (k2) {
+        for (const k2 of pickPairKickerVariants(hand, body, 1)) {
           results.push({
             type: 'TRIPLE_WITH_PAIR',
             mainRank: r,
@@ -499,8 +673,7 @@ export function findBeatingPlays(hand: Card[], prevPattern: HandPattern | null):
         body.push(...byRank.get((start + k) as Rank)!.slice(0, 3));
         k++;
         if (k >= 2) {
-          const ks = pickSingleKickers(hand, body, k);
-          if (ks) {
+          for (const ks of pickSingleKickerVariants(hand, body, k)) {
             results.push({
               type: 'AIRPLANE_WITH_SINGLES',
               mainRank: start as Rank,
@@ -509,8 +682,7 @@ export function findBeatingPlays(hand: Card[], prevPattern: HandPattern | null):
               cards: [...body, ...ks],
             });
           }
-          const kp = pickPairKickers(hand, body, k);
-          if (kp) {
+          for (const kp of pickPairKickerVariants(hand, body, k)) {
             results.push({
               type: 'AIRPLANE_WITH_PAIRS',
               mainRank: start as Rank,
@@ -525,6 +697,32 @@ export function findBeatingPlays(hand: Card[], prevPattern: HandPattern | null):
             length: k * 3,
             chainLength: k,
             cards: [...body],
+          });
+        }
+      }
+    }
+    // Four with two singles / pairs on free lead
+    for (const r of ranksAsc) {
+      const group = byRank.get(r)!;
+      if (group.length === 4) {
+        const kSingles = pickSingleKickers(hand, group, 2);
+        if (kSingles) {
+          results.push({
+            type: 'FOUR_WITH_TWO_SINGLES',
+            mainRank: r,
+            length: 6,
+            chainLength: 1,
+            cards: [...group, ...kSingles],
+          });
+        }
+        const kPairs = pickPairKickers(hand, group, 2);
+        if (kPairs) {
+          results.push({
+            type: 'FOUR_WITH_TWO_PAIRS',
+            mainRank: r,
+            length: 8,
+            chainLength: 1,
+            cards: [...group, ...kPairs],
           });
         }
       }
@@ -585,8 +783,7 @@ export function findBeatingPlays(hand: Card[], prevPattern: HandPattern | null):
           const group = byRank.get(r)!;
           if (r > minRank && group.length >= 3) {
             const body = group.slice(0, 3);
-            const kickers = pickSingleKickers(hand, body, 1);
-            if (kickers) {
+            for (const kickers of pickSingleKickerVariants(hand, body, 1)) {
               results.push({
                 type: 'TRIPLE_WITH_SINGLE',
                 mainRank: r,
@@ -605,8 +802,7 @@ export function findBeatingPlays(hand: Card[], prevPattern: HandPattern | null):
           const group = byRank.get(r)!;
           if (r > minRank && group.length >= 3) {
             const body = group.slice(0, 3);
-            const kickers = pickPairKickers(hand, body, 1);
-            if (kickers) {
+            for (const kickers of pickPairKickerVariants(hand, body, 1)) {
               results.push({
                 type: 'TRIPLE_WITH_PAIR',
                 mainRank: r,
@@ -696,8 +892,7 @@ export function findBeatingPlays(hand: Card[], prevPattern: HandPattern | null):
             body.push(group[0], group[1], group[2]);
           }
           if (!ok) continue;
-          const kickers = pickSingleKickers(hand, body, k);
-          if (kickers) {
+          for (const kickers of pickSingleKickerVariants(hand, body, k)) {
             results.push({
               type: 'AIRPLANE_WITH_SINGLES',
               mainRank: start as Rank,
@@ -723,8 +918,7 @@ export function findBeatingPlays(hand: Card[], prevPattern: HandPattern | null):
             body.push(group[0], group[1], group[2]);
           }
           if (!ok) continue;
-          const kickers = pickPairKickers(hand, body, k);
-          if (kickers) {
+          for (const kickers of pickPairKickerVariants(hand, body, k)) {
             results.push({
               type: 'AIRPLANE_WITH_PAIRS',
               mainRank: start as Rank,

@@ -93,6 +93,7 @@ export function ChipTokenSvg({
 
 interface ChipStackProps {
   amount: number;
+  displayText?: string;
   compact?: boolean;
   className?: string;
 }
@@ -106,6 +107,7 @@ function getChipLayers(amount: number): ChipTone[] {
 
 export const ChipStack: React.FC<ChipStackProps> = ({
   amount,
+  displayText,
   compact = false,
   className = '',
 }) => {
@@ -146,7 +148,7 @@ export const ChipStack: React.FC<ChipStackProps> = ({
           compact ? 'text-[10px]' : 'text-xs'
         }`}
       >
-        {amount.toLocaleString()}
+        {displayText ?? amount.toLocaleString()}
       </span>
     </div>
   );

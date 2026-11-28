@@ -6,6 +6,7 @@ import {
   ArrowUpDown,
   Ban,
   BookOpen,
+  Bot,
   Brain,
   ChevronsUp,
   Clock,
@@ -31,6 +32,7 @@ import {
 import { PlayingCard } from '../../../shared/cards/PlayingCard';
 import { TableEffects } from '../../../shared/effects/TableEffects';
 import { ChipBalancePill, FullscreenButton } from '../../../shared/components';
+import { isTextInputFocused } from '../../../shared/hooks/keyboard';
 import { useStageViewport } from '../../../shared/hooks/useStageViewport';
 import { getRankTier, usePlayerStore } from '../../../shared/store/playerStore';
 import { useDoudizhuProfileStore } from '../store/doudizhuProfileStore';
@@ -60,6 +62,8 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
   const seatBubbles = useDoudizhuGameStore((s) => s.seatBubbles);
   const tablePlays = useDoudizhuGameStore((s) => s.tablePlays);
   const aiThinkingSeat = useDoudizhuGameStore((s) => s.aiThinkingSeat);
+  const autoPlay = useDoudizhuGameStore((s) => s.autoPlay);
+  const activeBlindQuiz = useDoudizhuGameStore((s) => s.activeBlindQuiz);
   const activeFx = useDoudizhuGameStore((s) => s.activeFx);
   const liveWinRate = useDoudizhuGameStore((s) => s.liveWinRate);
   const coachPanelOpen = useDoudizhuGameStore((s) => s.coachPanelOpen);
@@ -83,6 +87,8 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
   const toggleCoachPanel = useDoudizhuGameStore((s) => s.toggleCoachPanel);
   const requestLiveCoach = useDoudizhuGameStore((s) => s.requestLiveCoach);
   const selectCoachCards = useDoudizhuGameStore((s) => s.selectCoachCards);
+  const toggleAutoPlay = useDoudizhuGameStore((s) => s.toggleAutoPlay);
+  const cancelAutoPlay = useDoudizhuGameStore((s) => s.cancelAutoPlay);
   const clearActiveFx = useDoudizhuGameStore((s) => s.clearActiveFx);
 
   const chips = usePlayerStore((s) => s.chips);
@@ -136,6 +142,63 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
   const bottomRevealed = gameState.landlordSeat !== null;
   const shakeScreen = activeFx?.kind === 'BOMB' || activeFx?.kind === 'ROCKET';
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+      if (isTextInputFocused(e.target)) return;
+      if (activeBlindQuiz !== null || gameState.phase !== 'PLAYING') return;
+
+      if (e.key === 'Escape') {
+        if (selectedCardIds.length > 0) {
+          e.preventDefault();
+          clearSelection();
+        }
+        return;
+      }
+
+      if (!isHumanTurn) return;
+
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault();
+        if (matchedSelection) {
+          humanPlaySelected();
+        }
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+      if (key === 'h') {
+        e.preventDefault();
+        cycleHint();
+      } else if (key === 'p' && gameState.lastPlay !== null) {
+        e.preventDefault();
+        humanPass();
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [
+    activeBlindQuiz,
+    clearSelection,
+    cycleHint,
+    gameState.lastPlay,
+    gameState.phase,
+    humanPass,
+    humanPlaySelected,
+    isHumanTurn,
+    matchedSelection,
+    selectedCardIds.length,
+  ]);
+
+  const isInteractiveTarget = (target: EventTarget | null) =>
+    target instanceof Element &&
+    Boolean(
+      target.closest(
+        'button, a, input, select, textarea, [role="button"], [role="dialog"], [data-card-index]',
+      ),
+    );
+
   const getSeatRole = (seat: 0 | 1 | 2): DoudizhuRole => {
     if (gameState.landlordSeat === null) return 'pending';
     return gameState.landlordSeat === seat ? 'landlord' : 'farmer';
@@ -145,6 +208,17 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
 
   return (
     <div
+      onDoubleClick={(e) => {
+        if (selectedCardIds.length > 0 && !isInteractiveTarget(e.target)) {
+          clearSelection();
+        }
+      }}
+      onContextMenu={(e) => {
+        if (selectedCardIds.length > 0 && !isInteractiveTarget(e.target)) {
+          e.preventDefault();
+          clearSelection();
+        }
+      }}
       className={`doudizhu-stage-bg safe-area-pad relative flex h-full w-full flex-col overflow-hidden select-none ${
         shakeScreen ? 'table-shake' : ''
       }`}
@@ -304,8 +378,22 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
           )}
         </div>
 
-        {/* Right Controls: Large Font + Coach + Fullscreen */}
+        {/* Right Controls: Auto-Play + Large Font + Coach + Fullscreen */}
         <div className="flex shrink-0 items-center gap-1 whitespace-nowrap">
+          <button
+            type="button"
+            onClick={toggleAutoPlay}
+            title={autoPlay ? '关闭自动托管（或点击任意手牌/按钮取消）' : '开启托管（轮到您时自动代打）'}
+            className={`flex shrink-0 items-center gap-1 whitespace-nowrap rounded-xl px-2.5 py-1.5 short-h:px-2 short-h:py-1 text-xs short-h:text-[11px] font-black transition cursor-pointer ${
+              autoPlay
+                ? 'border border-sky-300 bg-sky-500/30 text-sky-100 shadow animate-pulse'
+                : 'hud-glass text-emerald-100/85 hover:border-amber-300/60'
+            }`}
+          >
+            <Bot className="h-4 w-4 short-h:h-3.5 short-h:w-3.5 text-sky-300" />
+            <span>{autoPlay ? '托管中' : '托管'}</span>
+          </button>
+
           <button
             type="button"
             onClick={toggleLargeCardFont}
@@ -666,17 +754,43 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
               </div>
             ) : gameState.phase === 'PLAYING' && isHumanTurn ? (
               <div className="flex items-center justify-center gap-1 sm:gap-2 whitespace-nowrap">
-                <div
-                  className={`flex h-[36px] tall-h:h-[44px] px-2.5 items-center justify-center gap-1 rounded-full border-2 bg-black/70 font-mono text-[13px] sm:text-sm font-black shadow-lg ${
-                    turnSecondsLeft <= 5
-                      ? 'border-rose-400 text-rose-300 animate-pulse'
-                      : 'border-amber-300/80 text-amber-300'
-                  }`}
-                >
-                  <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  <span>{turnSecondsLeft}</span>
-                  <span className="short-h-hide text-[11px] font-sans text-amber-100">轮到您</span>
-                </div>
+                {autoPlay ? (
+                  <button
+                    type="button"
+                    onClick={cancelAutoPlay}
+                    className="inline-flex h-[36px] tall-h:h-[44px] items-center gap-1.5 rounded-full border-2 border-sky-300/80 bg-sky-500/25 px-3 text-xs sm:text-sm font-black text-sky-100 shadow-lg hover:bg-sky-500/40 cursor-pointer"
+                    title="点击取消自动托管"
+                  >
+                    <Bot className="h-4 w-4 text-sky-300 animate-pulse" />
+                    <span>托管代打中 · 取消</span>
+                  </button>
+                ) : (
+                  <div
+                    className={`flex h-[36px] tall-h:h-[44px] px-2.5 items-center justify-center gap-1 rounded-full border-2 bg-black/70 font-mono text-[13px] sm:text-sm font-black shadow-lg ${
+                      turnSecondsLeft <= 5
+                        ? 'border-rose-400 text-rose-300 animate-pulse'
+                        : 'border-amber-300/80 text-amber-300'
+                    }`}
+                  >
+                    <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span>{turnSecondsLeft}</span>
+                    <span className="short-h-hide text-[11px] font-sans text-amber-100">轮到您</span>
+                  </div>
+                )}
+
+                {matchMode !== 'puzzle' &&
+                  gameState.landlordSeat === 0 &&
+                  gameState.playCounts[0] === 0 &&
+                  !gameState.mingpaiSeats.includes(0) && (
+                    <button
+                      type="button"
+                      onClick={humanMingpai}
+                      className="game-btn-crimson inline-flex h-[36px] tall-h:h-[44px] items-center gap-1 rounded-xl px-2.5 sm:px-3.5 text-[13px] sm:text-sm font-black cursor-pointer"
+                      title="地主出第一手前明牌，倍数 ×2"
+                    >
+                      <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 明牌 ×2
+                    </button>
+                  )}
 
                 {gameState.lastPlay !== null && (
                   <button
@@ -685,6 +799,9 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
                     className="game-btn-slate inline-flex h-[36px] tall-h:h-[44px] items-center gap-1 rounded-xl px-2.5 sm:px-4 text-[13px] sm:text-base font-black cursor-pointer"
                   >
                     <SkipForward className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 不要
+                    <kbd className="hidden lg:inline short-h:hidden rounded bg-black/25 px-1 py-0.5 font-mono text-[10px] opacity-80">
+                      P
+                    </kbd>
                   </button>
                 )}
 
@@ -694,6 +811,9 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
                   className="game-btn-sky inline-flex h-[36px] tall-h:h-[44px] items-center gap-1 rounded-xl px-2.5 sm:px-4 text-[13px] sm:text-base font-black cursor-pointer"
                 >
                   <Lightbulb className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 提示
+                  <kbd className="hidden lg:inline short-h:hidden rounded bg-black/25 px-1 py-0.5 font-mono text-[10px] opacity-80">
+                    H
+                  </kbd>
                 </button>
 
                 <button
@@ -711,6 +831,9 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
                     className="hud-glass inline-flex h-[36px] tall-h:h-[44px] items-center gap-1 rounded-xl px-2.5 sm:px-3 text-[13px] sm:text-sm font-bold text-amber-100 hover:border-amber-300/60 cursor-pointer"
                   >
                     <RotateCcw className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 重选
+                    <kbd className="hidden lg:inline short-h:hidden rounded bg-black/30 px-1 py-0.5 font-mono text-[10px] opacity-75">
+                      Esc
+                    </kbd>
                   </button>
                 )}
 
@@ -726,6 +849,9 @@ export const GameTable: React.FC<GameTableProps> = ({ onExitToLobby }) => {
                 >
                   <ArrowUpCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   {matchedSelection ? `出牌 · ${formatPatternLabel(matchedSelection)}` : '出牌'}
+                  <kbd className="hidden lg:inline short-h:hidden rounded bg-black/25 px-1 py-0.5 font-mono text-[10px] opacity-80">
+                    Space
+                  </kbd>
                 </button>
               </div>
             ) : (

@@ -356,7 +356,7 @@ export function analyzeMatchBlunders(
       settlement: null,
     };
 
-    const best = chooseBestMove(preState, targetSeat, 'master');
+    const best = chooseBestMove(preState, targetSeat, 'master', Math.random, { openHand: true });
     if (sameMove(move.isPass, move.pattern, best.isPass, best.pattern)) {
       continue;
     }

@@ -4,6 +4,7 @@ export * from './rules';
 export * from './gameLoop';
 export * from './decomposer';
 export * from './cardCounter';
+export * from './determinizer';
 export * from './ai';
 export * from './coach';
 export * from './aiClient';

@@ -5,9 +5,15 @@ import {
   HandState,
   PlayerAction,
 } from '../engine/types';
-import { analyzeOuts, calculateEquity, OutsAnalysis } from './equity';
+import {
+  analyzeBoardTexture,
+  BoardTexture,
+  getPostflopPositionInfo,
+} from './boardTexture';
+import { analyzeOuts, calculateRangeEquity, OutsAnalysis } from './equity';
 import { GtoMatrixCell, lookupPreflopGto, scorePreflopStrength } from './gtoRanges';
 import { AiPersona } from './personas';
+import { inferActiveOpponentRanges, WeightedHandRange } from './rangeModel';
 
 export interface CoachAnalysis {
   street: BettingStreet;
@@ -19,6 +25,9 @@ export interface CoachAnalysis {
   spr: number;
   outs: OutsAnalysis;
   preflopCell: GtoMatrixCell | null;
+  boardTexture?: BoardTexture | null;
+  isIp?: boolean;
+  opponentRangeSummaryZh?: string;
   impliedOddsZh: string;
   exploitativeTipZh: string;
   recommendedAction: ActionType;
@@ -75,10 +84,12 @@ const STREET_LABELS: Record<BettingStreet, string> = {
   river: '河牌',
 };
 
-function buildExploitativeTip(
+function buildRangeAwareExploitativeTip(
   state: HandState,
   heroSeat: number,
   personasBySeat: Record<number, AiPersona>,
+  oppRanges: readonly WeightedHandRange[],
+  heroEquityPct: number,
 ): string {
   const activeOpps = state.players
     .filter((p) => p.seat !== heroSeat && !p.folded)
@@ -88,23 +99,56 @@ function buildExploitativeTip(
   if (activeOpps.length === 0) {
     return '对手已全部弃牌，准备收池。';
   }
+
+  const tightestRange = [...oppRanges].sort((a, b) => a.rangePct - b.rangePct)[0];
+  const nitRange = oppRanges.find((r) => r.styleId === 'NIT' && r.tightness === 'ultra_narrow');
+  if (nitRange) {
+    const pct = Math.max(1, Math.round(nitRange.rangePct * 100));
+    return `面对岩石型对手 ${nitRange.personaName} 的 ${nitRange.actionSummaryZh}（极窄范围约 ${pct}%，QQ+/AK为主），你当前手牌实际范围胜率仅为 ${heroEquityPct}%，切勿按普通随机牌力强行加注！`;
+  }
+
   const station = activeOpps.find((p) => p.styleId === 'CALLING_STATION');
   if (station) {
-    return `注意 ${station.name} 是【跟注站】：对他不要纯诈唬，拿到成牌（顶对以上）直接打薄价值！`;
+    return `注意 ${station.name} 是【跟注站】（跟注范围极宽）：对他不要纯诈唬，拿到顶对以上成牌直接打薄价值！`;
   }
+
   const nit = activeOpps.find((p) => p.styleId === 'NIT');
   if (nit && state.actions.some((a) => a.seat === nit.seat && a.action.type === 'raise')) {
-    return `警惕 ${nit.name}（岩石型）刚刚加注！其范围极窄，边缘顶对建议谨慎防守或弃牌。`;
+    return `警惕 ${nit.name}（岩石型）主动加注！其范围收窄至约 ${Math.max(1, Math.round((tightestRange?.rangePct ?? 0.06) * 100))}%，边缘顶对建议谨慎防守或弃牌。`;
   }
+
   const lag = activeOpps.find((p) => p.styleId === 'LAG');
   if (lag) {
-    return `面对 ${lag.name}（松凶型）的高频施压，可以用中等成牌适当跟注抓诈唬，或用超强牌慢打诱敌。`;
+    return `面对 ${lag.name}（松凶型）的高频宽范围施压，可以用中等成牌适当跟注抓诈唬，或用超强牌慢打诱敌。`;
   }
-  return activeOpps[0].exploitTipZh;
+
+  return tightestRange
+    ? `${tightestRange.summaryZh}。${activeOpps[0].exploitTipZh}`
+    : activeOpps[0].exploitTipZh;
+}
+
+function buildRangeContextPrefixZh(
+  oppRanges: readonly WeightedHandRange[],
+  heroEquityPct: number,
+): string {
+  if (oppRanges.length === 0) return '';
+  const focus = [...oppRanges].sort((a, b) => a.rangePct - b.rangePct)[0];
+  const pct = Math.max(1, Math.round(focus.rangePct * 100));
+
+  if (focus.styleId === 'NIT' && focus.tightness === 'ultra_narrow') {
+    return `面对岩石型对手（${focus.personaName}）${focus.actionSummaryZh}的极窄范围（~${pct}%），你当前实际胜率仅为 ${heroEquityPct}%，切勿按普通随机牌力强行加注。`;
+  }
+  if (focus.tightness === 'ultra_narrow' || focus.tightness === 'narrow') {
+    return `面对 ${focus.personaName}（${focus.actionSummaryZh}，偏紧范围 ~${pct}%），你的范围胜率为 ${heroEquityPct}%。`;
+  }
+  if (focus.tightness === 'wide') {
+    return `面对 ${focus.personaName} 的宽松范围（~${pct}% 组合），你的范围胜率达 ${heroEquityPct}%。`;
+  }
+  return `对抗 ${focus.personaName} 的推断范围（~${pct}% 组合），你当前范围胜率为 ${heroEquityPct}%。`;
 }
 
 /**
- * Generates real-time GTO + Exploitative coaching insights for Hero's decision turn.
+ * Generates real-time GTO + Range-vs-Range Exploitative coaching insights for Hero's decision turn.
  */
 export function analyzeCoachSpot(
   state: HandState,
@@ -137,15 +181,24 @@ export function analyzeCoachSpot(
   const spr = Number((effectiveStack / Math.max(1, potSize)).toFixed(1));
 
   const outs = analyzeOuts(hero.holeCards, state.communityCards);
-  const exploitativeTipZh = buildExploitativeTip(state, heroSeat, personasBySeat);
+  const oppRanges = inferActiveOpponentRanges(state, heroSeat, personasBySeat);
+  const focusRange = [...oppRanges].sort((a, b) => a.rangePct - b.rangePct)[0];
+  const opponentRangeSummaryZh = focusRange?.summaryZh;
 
   // Preflop analysis
   if (street === 'preflop') {
     const facingRaise = state.currentBet > state.bigBlind;
     const preflopCell = lookupPreflopGto(hero.holeCards, hero.position, facingRaise);
-    const mc = calculateEquity(hero.holeCards, [], activeOpponents, iterations);
+    const mc = calculateRangeEquity(hero.holeCards, [], oppRanges, iterations);
     const strength = scorePreflopStrength(hero.holeCards);
     const heroEquityPct = Math.round(mc.equity * 100);
+    const exploitativeTipZh = buildRangeAwareExploitativeTip(
+      state,
+      heroSeat,
+      personasBySeat,
+      oppRanges,
+      heroEquityPct,
+    );
 
     let recommendedAction: ActionType = preflopCell.action;
     let recommendedAmount: number | undefined;
@@ -177,10 +230,11 @@ export function analyzeCoachSpot(
         ? `当前有效 SPR=${spr}（深筹码），同花连张与小对子具备较高翻后隐含赔率。`
         : `当前 SPR=${spr}，筹码较浅，优先选择高牌力直接价值对决。`;
 
+    const rangePrefix = buildRangeContextPrefixZh(oppRanges, heroEquityPct);
     const explanationZh =
       toCall > 0
-        ? `跟注需要 ${potOddsPct}% 胜率，你当前手牌 ${preflopCell.handKey} 对抗 ${activeOpponents} 名对手胜率约 ${heroEquityPct}%（翻前强度 ${Math.round(strength * 100)}），${preflopCell.reasonZh}`
-        : `在 ${hero.position} 位起手 ${preflopCell.handKey}（对抗 ${activeOpponents} 人胜率约 ${heroEquityPct}%），${preflopCell.reasonZh}`;
+        ? `跟注需要 ${potOddsPct}% 胜率。${rangePrefix} 手牌 ${preflopCell.handKey}（牌力评分 ${Math.round(strength * 100)}），${preflopCell.reasonZh}`
+        : `在 ${hero.position} 位起手 ${preflopCell.handKey}（对抗 ${activeOpponents} 人范围胜率约 ${heroEquityPct}%），${preflopCell.reasonZh}`;
 
     return {
       street,
@@ -192,6 +246,9 @@ export function analyzeCoachSpot(
       spr,
       outs,
       preflopCell,
+      boardTexture: null,
+      isIp: hero.position === 'BTN' || hero.position === 'CO',
+      opponentRangeSummaryZh,
       impliedOddsZh,
       exploitativeTipZh,
       recommendedAction,
@@ -202,81 +259,125 @@ export function analyzeCoachSpot(
     };
   }
 
-  // Postflop Monte Carlo analysis
-  const mc = calculateEquity(hero.holeCards, state.communityCards, activeOpponents, iterations);
+  // Postflop Range-vs-Range Monte Carlo + Board Texture + IP/OOP Analysis
+  const mc = calculateRangeEquity(hero.holeCards, state.communityCards, oppRanges, iterations);
   const heroEquityPct = Math.round(mc.equity * 100);
+  const boardTexture = analyzeBoardTexture(state.communityCards);
+  const posInfo = getPostflopPositionInfo(state, heroSeat);
+  const isDry = boardTexture.wetness === 'dry';
+  const isWet = boardTexture.wetness === 'wet';
   const hasCallingStation = state.players.some(
     (p) => p.seat !== heroSeat && !p.folded && personasBySeat[p.seat]?.styleId === 'CALLING_STATION',
+  );
+  const facingUltraNarrow = focusRange?.tightness === 'ultra_narrow';
+
+  const exploitativeTipZh = buildRangeAwareExploitativeTip(
+    state,
+    heroSeat,
+    personasBySeat,
+    oppRanges,
+    heroEquityPct,
   );
 
   let recommendedAction: ActionType = 'check';
   let recommendedAmount: number | undefined;
   let recommendedLabelZh = '过牌控池';
-  let explanationZh = '';
+  let actionAdviceZh = '';
+
+  const textureTagStr = boardTexture.tagsZh.slice(0, 3).join('·');
+  const posStr = posInfo.isIp ? '有利位置（IP）' : '不利位置（OOP）';
+  const rangePrefix = buildRangeContextPrefixZh(oppRanges, heroEquityPct);
 
   const impliedOddsZh =
     street !== 'river' && outs.totalOuts >= 4
       ? spr >= 2.5
-        ? `SPR=${spr}，击中听牌后仍有充足后手筹码可榨取额外价值（隐含赔率充足）。`
-        : `SPR=${spr} 较浅，隐含赔率有限，若底池赔率不足不建议盲目追牌。`
-      : `已进入${STREET_LABELS[street]}阶段，决策主要取决于直接底池赔率与范围强弱。`;
+        ? `当前牌面【${textureTagStr}】、你处于${posStr}，SPR=${spr}，击中听牌后仍有充足后手可榨取隐含价值。`
+        : `SPR=${spr} 较浅且处于${posStr}，隐含赔率有限，若直接赔率不足不建议盲目追牌。`
+      : `牌面结构【${textureTagStr}】，你处于${posStr}，${isDry ? '干燥面适合小额高频施压或控池' : isWet ? '湿润面需警惕听牌反超，价值下注宜用较大尺度' : '半湿润面需结合转牌变化灵活控制底池'}。`;
 
   if (toCall > 0) {
     // Facing a bet
-    if (mc.equity >= 0.72 && legal.canRaise) {
+    const raiseThreshold = facingUltraNarrow ? 0.78 : isWet ? 0.7 : 0.74;
+    if (mc.equity >= raiseThreshold && legal.canRaise) {
       recommendedAction = 'raise';
+      const potFactor = isWet ? 0.75 : 0.65;
       recommendedAmount = Math.max(
         legal.minRaiseTo,
-        Math.min(legal.maxRaiseTo, state.currentBet + Math.round((potSize + toCall) * 0.7)),
+        Math.min(legal.maxRaiseTo, state.currentBet + Math.round((potSize + toCall) * potFactor)),
       );
       recommendedLabelZh = `加注至 ${recommendedAmount}（强价值）`;
-      explanationZh = `跟注需要 ${potOddsPct}% 胜率，你的当前胜率高达 ${heroEquityPct}%，绝对领先对手范围，建议加注做大底池榨取价值！`;
-    } else if (street !== 'river' && outs.totalOuts >= 12 && mc.equity >= 0.45 && legal.canRaise && !hasCallingStation) {
+      actionAdviceZh = `跟注需 ${potOddsPct}% 胜率，你对对手范围绝对领先，建议在${posStr}${isWet ? '用大尺度加注保护并榨取价值' : '加注做大底池'}！`;
+    } else if (
+      street !== 'river' &&
+      outs.totalOuts >= 12 &&
+      mc.equity >= 0.45 &&
+      legal.canRaise &&
+      !hasCallingStation &&
+      !facingUltraNarrow
+    ) {
       recommendedAction = 'raise';
       recommendedAmount = Math.max(
         legal.minRaiseTo,
-        Math.min(legal.maxRaiseTo, state.currentBet + Math.round((potSize + toCall) * 0.66)),
+        Math.min(legal.maxRaiseTo, state.currentBet + Math.round((potSize + toCall) * 0.67)),
       );
       recommendedLabelZh = `加注至 ${recommendedAmount}（半诈唬）`;
-      explanationZh = `跟注需要 ${potOddsPct}% 胜率，你手握${outs.drawTagsZh.join('+')}共 ${outs.totalOuts} 张 Outs，胜率约 ${heroEquityPct}%，兼具成牌率与弃牌率，建议加注做半诈唬！`;
+      actionAdviceZh = `你手握${outs.drawTagsZh.join('+')}共 ${outs.totalOuts} 张 Outs，在${posStr}兼具成牌率与弃牌率，适合主动加注施压！`;
     } else if (mc.equity >= potOdds - (street !== 'river' && outs.totalOuts >= 8 && spr >= 2.5 ? 0.05 : 0)) {
       recommendedAction = 'call';
       recommendedLabelZh = `跟注 ${toCall}`;
-      explanationZh =
-        outs.totalOuts >= 4
-          ? `跟注需要 ${potOddsPct}% 胜率，你拥有 ${outs.totalOuts} 张 Outs，当前胜率约 ${heroEquityPct}%（大于赔率门槛），建议跟注看牌。`
-          : `跟注需要 ${potOddsPct}% 胜率，你的当前胜率约 ${heroEquityPct}%，底池赔率划算，建议跟注。`;
+      actionAdviceZh =
+        facingUltraNarrow && mc.equity < 0.6
+          ? `跟注需 ${potOddsPct}% 胜率，虽满足赔率可跟注抓牌/防守，但对手范围极强，切忌盲目加注。`
+          : outs.totalOuts >= 4
+            ? `跟注需 ${potOddsPct}% 胜率，你有 ${outs.totalOuts} 张 Outs，范围胜率达标，建议在${posStr}跟注看牌。`
+            : `跟注需 ${potOddsPct}% 胜率，底池赔率划算，建议${posInfo.isIp ? '利用 IP 位置优势' : '稳健'}跟注。`;
     } else {
       recommendedAction = 'fold';
       recommendedLabelZh = '弃牌止损';
-      explanationZh = `跟注需要 ${potOddsPct}% 胜率，而你当前胜率仅约 ${heroEquityPct}%${outs.totalOuts > 0 ? `（仅有 ${outs.totalOuts} 张 Outs）` : ''}，强行跟注属于 -EV 失误，建议果断弃牌。`;
+      actionAdviceZh = `跟注需要 ${potOddsPct}% 胜率，当前范围胜率不足${outs.totalOuts > 0 ? `（仅 ${outs.totalOuts} Outs）` : ''}，强行跟注为 -EV 失误，建议果断弃牌。`;
     }
   } else {
     // Checked to Hero
-    if (mc.equity >= (hasCallingStation ? 0.56 : 0.65) && legal.canRaise) {
+    const valueThreshold = hasCallingStation ? 0.56 : posInfo.isIp ? 0.62 : 0.67;
+    if (mc.equity >= valueThreshold && legal.canRaise) {
       recommendedAction = 'raise';
+      const betRatio = isDry
+        ? mc.equity >= 0.85 && street !== 'flop'
+          ? 0.66
+          : 0.33
+        : isWet
+          ? 0.72
+          : mc.equity >= 0.78
+            ? 0.67
+            : 0.5;
       recommendedAmount = Math.max(
         legal.minRaiseTo,
-        Math.min(legal.maxRaiseTo, Math.round(potSize * (mc.equity >= 0.78 ? 0.75 : 0.5))),
+        Math.min(legal.maxRaiseTo, Math.round(potSize * betRatio)),
       );
+      const sizeTag = betRatio <= 0.36 ? '1/3池小额' : betRatio >= 0.68 ? '2/3~3/4池' : '半池';
       recommendedLabelZh = `价值下注 ${recommendedAmount}`;
-      explanationZh = hasCallingStation
-        ? `当前胜率约 ${heroEquityPct}%，且牌桌存在跟注站，建议直接打出 ${recommendedAmount} 的薄价值下注！`
-        : `当前胜率约 ${heroEquityPct}%，领先对手范围，建议下注 ${recommendedAmount} 获取价值并保护成牌。`;
+      actionAdviceZh = hasCallingStation
+        ? `当前存在跟注站，建议在${posStr}直接打出 ${recommendedAmount}（${sizeTag}）薄价值！`
+        : `在【${textureTagStr}】牌面、${posStr}下领先对手范围，建议下注 ${recommendedAmount}（${sizeTag}）${isDry ? '高频获取价值' : '保护成牌并拒绝对手便宜看牌'}。`;
     } else if (street !== 'river' && outs.totalOuts >= 10 && legal.canRaise && !hasCallingStation) {
       recommendedAction = 'raise';
+      const semiRatio = isDry ? 0.33 : 0.67;
       recommendedAmount = Math.max(
         legal.minRaiseTo,
-        Math.min(legal.maxRaiseTo, Math.round(potSize * 0.66)),
+        Math.min(legal.maxRaiseTo, Math.round(potSize * semiRatio)),
       );
       recommendedLabelZh = `半诈唬下注 ${recommendedAmount}`;
-      explanationZh = `你手握 ${outs.totalOuts} 张 Outs（${outs.drawTagsZh.join('+')}），胜率约 ${heroEquityPct}%，主动下注 ${recommendedAmount} 可直接收池或做大彩池！`;
+      actionAdviceZh = `你手握 ${outs.totalOuts} 张 Outs（${outs.drawTagsZh.join('+')}），在【${textureTagStr}】${posStr}建议以 ${recommendedAmount} 半诈唬施压！`;
     } else {
       recommendedAction = 'check';
       recommendedLabelZh = '过牌控池';
-      explanationZh = `当前胜率约 ${heroEquityPct}%，在免费看牌的情况下建议过牌控制底池规模，避免被强牌反加套牢。`;
+      actionAdviceZh = posInfo.isOop
+        ? `处于不利位置（OOP）且面对【${textureTagStr}】牌面，边缘牌力宜多过牌保护过牌范围并控制底池。`
+        : `在有利位置（IP）免费看牌，当前胜率适合过牌控池，避免面对强牌范围被反加套牢。`;
     }
   }
+
+  const explanationZh = `${rangePrefix} 当前牌面【${textureTagStr}】，处于${posStr}。${actionAdviceZh}`;
 
   return {
     street,
@@ -288,6 +389,9 @@ export function analyzeCoachSpot(
     spr,
     outs,
     preflopCell: null,
+    boardTexture,
+    isIp: posInfo.isIp,
+    opponentRangeSummaryZh,
     impliedOddsZh,
     exploitativeTipZh,
     recommendedAction,

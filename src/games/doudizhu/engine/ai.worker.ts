@@ -1,5 +1,5 @@
 import { BidAction, DoubleChoice, GameState, Seat } from './types';
-import { AIDifficulty, AIMoveDecision, chooseBestMove, decideBidAction, decideDoubleChoice } from './ai';
+import { AIDifficulty, AIMoveDecision, ChooseMoveOptions, chooseBestMove, decideBidAction, decideDoubleChoice } from './ai';
 import {
   BlunderReport,
   CoachAdvice,
@@ -10,7 +10,7 @@ import {
 } from './coach';
 
 export type AIWorkerRequest =
-  | { id: number; type: 'CHOOSE_MOVE'; state: GameState; seat: Seat; difficulty: AIDifficulty }
+  | { id: number; type: 'CHOOSE_MOVE'; state: GameState; seat: Seat; difficulty: AIDifficulty; options?: ChooseMoveOptions }
   | { id: number; type: 'DECIDE_BID'; state: GameState; seat: Seat; difficulty: AIDifficulty }
   | { id: number; type: 'DECIDE_DOUBLE'; state: GameState; seat: Seat; difficulty: AIDifficulty }
   | { id: number; type: 'EVALUATE_WIN_RATE'; state: GameState; perspectiveSeat: Seat }
@@ -31,7 +31,7 @@ self.onmessage = (event: MessageEvent<AIWorkerRequest>) => {
   try {
     switch (req.type) {
       case 'CHOOSE_MOVE': {
-        const result = chooseBestMove(req.state, req.seat, req.difficulty);
+        const result = chooseBestMove(req.state, req.seat, req.difficulty, Math.random, req.options);
         self.postMessage({ id: req.id, type: req.type, result } satisfies AIWorkerResponse);
         break;
       }

@@ -18,6 +18,7 @@ interface HoldemProfileState {
   selectedStake: number;
   hudEnabled: boolean;
   outsQuizEnabled: boolean;
+  displayInBb: boolean;
   trainingPoints: number;
   outsQuizAttempts: number;
   outsQuizCorrect: number;
@@ -29,6 +30,7 @@ interface HoldemProfileState {
   setHudEnabled: (enabled: boolean) => void;
   toggleOutsQuiz: () => void;
   setOutsQuizEnabled: (enabled: boolean) => void;
+  toggleDisplayInBb: () => void;
   recordOutsQuizResult: (exact: boolean, pointsEarned: number) => number;
   saveCompletedHand: (hand: SavedHoldemHand) => void;
 }
@@ -41,6 +43,7 @@ export const useHoldemProfileStore = create<HoldemProfileState>()(
       selectedStake: 100,
       hudEnabled: true,
       outsQuizEnabled: false,
+      displayInBb: false,
       trainingPoints: 0,
       outsQuizAttempts: 0,
       outsQuizCorrect: 0,
@@ -52,6 +55,7 @@ export const useHoldemProfileStore = create<HoldemProfileState>()(
       setHudEnabled: (hudEnabled) => set({ hudEnabled }),
       toggleOutsQuiz: () => set((s) => ({ outsQuizEnabled: !s.outsQuizEnabled })),
       setOutsQuizEnabled: (outsQuizEnabled) => set({ outsQuizEnabled }),
+      toggleDisplayInBb: () => set((s) => ({ displayInBb: !s.displayInBb })),
 
       recordOutsQuizResult: (exact, pointsEarned) => {
         const nextCorrect = get().outsQuizCorrect + (exact ? 1 : 0);

@@ -190,86 +190,7 @@ export function decomposeHand(cards: Card[]): HandDecomposition {
     counts[Rank.BIG_JOKER] = 0;
   }
 
-  const memo = new Map<string, HandDecomposition>();
-
-  const solve = (stateCounts: number[], minStage: number, minRank: number): HandDecomposition => {
-    const key = `${minStage}:${minRank}:${stateCounts.slice(3).join(',')}`;
-    const cached = memo.get(key);
-    if (cached) return cached;
-
-    let best = scoreGroups([...prefixGroups, ...buildBaseGroups(stateCounts)]);
-
-    if (memo.size > 4000) {
-      return best;
-    }
-
-    // Stage 0: Airplanes (consecutive triples, length >= 2, ranks 3..A)
-    if (minStage <= 0) {
-      const startFrom = minStage === 0 ? Math.max(Rank.THREE, minRank) : Rank.THREE;
-      for (let start = startFrom; start <= Rank.KING; start++) {
-        if (stateCounts[start] < 3 || stateCounts[start + 1] < 3) continue;
-        let maxLen = 2;
-        while (start + maxLen <= Rank.ACE && stateCounts[start + maxLen] >= 3) {
-          maxLen++;
-        }
-        for (let len = maxLen; len >= 2; len--) {
-          const next = [...stateCounts];
-          for (let i = 0; i < len; i++) next[start + i] -= 3;
-          const sub = solve(next, 0, start);
-          const candidate = scoreGroups([
-            { type: 'AIRPLANE', mainRank: start as Rank, chainLength: len, cardCount: len * 3 },
-            ...sub.groups,
-          ]);
-          if (candidate.handValue > best.handValue) best = candidate;
-        }
-      }
-    }
-
-    // Stage 1: Pair Straights (consecutive pairs, length >= 3, ranks 3..A)
-    if (minStage <= 1) {
-      const startFrom = minStage === 1 ? Math.max(Rank.THREE, minRank) : Rank.THREE;
-      for (let start = startFrom; start <= Rank.QUEEN; start++) {
-        if (stateCounts[start] < 2 || stateCounts[start + 1] < 2 || stateCounts[start + 2] < 2) continue;
-        let maxLen = 3;
-        while (start + maxLen <= Rank.ACE && stateCounts[start + maxLen] >= 2) {
-          maxLen++;
-        }
-        for (let len = maxLen; len >= 3; len--) {
-          const next = [...stateCounts];
-          for (let i = 0; i < len; i++) next[start + i] -= 2;
-          const sub = solve(next, 1, start);
-          const candidate = scoreGroups([
-            { type: 'PAIR_STRAIGHT', mainRank: start as Rank, chainLength: len, cardCount: len * 2 },
-            ...sub.groups,
-          ]);
-          if (candidate.handValue > best.handValue) best = candidate;
-        }
-      }
-    }
-
-    // Stage 2: Straights (consecutive singles, length >= 5, ranks 3..A)
-    const startFrom = minStage === 2 ? Math.max(Rank.THREE, minRank) : Rank.THREE;
-    for (let start = startFrom; start <= Rank.TEN; start++) {
-      let maxLen = 0;
-      while (start + maxLen <= Rank.ACE && stateCounts[start + maxLen] >= 1) {
-        maxLen++;
-      }
-      if (maxLen < 5) continue;
-      for (let len = maxLen; len >= 5; len--) {
-        const next = [...stateCounts];
-        for (let i = 0; i < len; i++) next[start + i] -= 1;
-        const sub = solve(next, 2, start);
-        const candidate = scoreGroups([
-          { type: 'STRAIGHT', mainRank: start as Rank, chainLength: len, cardCount: len },
-          ...sub.groups,
-        ]);
-        if (candidate.handValue > best.handValue) best = candidate;
-      }
-    }
-
-    memo.set(key, best);
-    return best;
-  };
+  const groupMemo = new Map<string, DecomposedGroup[]>();
 
   // Start recursion with empty prefix inside recursion so scoreGroups doesn't double-count prefixGroups
   const solveClean = (stateCounts: number[], minStage: number, minRank: number): DecomposedGroup[] => {
@@ -355,11 +276,6 @@ export function decomposeHand(cards: Card[]): HandDecomposition {
     return bestGroups;
   };
 
-  // Unused solve kept? Remove solve so no unused locals!
-  void memo;
-  void solve;
-
-  const groupMemo = new Map<string, DecomposedGroup[]>();
   const bodyGroups = solveClean(counts, 0, Rank.THREE);
   return scoreGroups([...prefixGroups, ...bodyGroups]);
 }

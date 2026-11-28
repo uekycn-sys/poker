@@ -18,6 +18,7 @@ import {
   applyPassTurn,
   applyPlayCards,
   buildPuzzleGameState,
+  cancelDoudizhuAIRequests,
   computeExternalRemainingCounts,
   createInitialGameState,
   extractSmartSelection,
@@ -34,6 +35,7 @@ import { soundEngine } from '../../../shared/audio/soundEngine';
 import { FxKind, TableFxEvent } from '../../../shared/effects/TableEffects';
 import { secureRandomInt, secureShuffle } from '../../../shared/random';
 import { usePlayerStore } from '../../../shared/store/playerStore';
+import { isWorkerCancelledError } from '../../../shared/workers/resilientWorker';
 import { doudizhuSpeech } from '../audio/doudizhuSpeech';
 import { SavedMatchRecord, useDoudizhuProfileStore } from './doudizhuProfileStore';
 
@@ -67,6 +69,8 @@ const BID_TURN_SECONDS = 30;
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 let fxCounter = 1;
+let aiTurnSeq = 0;
+let humanAutoSeq = 0;
 let bubbleTimerIds: Array<ReturnType<typeof setTimeout>> = [];
 
 function clearBubbleTimers() {
@@ -131,6 +135,7 @@ interface DoudizhuGameStoreState {
   seatBubbles: [string | null, string | null, string | null];
   tablePlays: [HandPattern | null, HandPattern | null, HandPattern | null];
   aiThinkingSeat: Seat | null;
+  autoPlay: boolean;
   activeFx: TableFxEvent | null;
   liveWinRate: WinRateEvaluation;
   coachPanelOpen: boolean;
@@ -162,6 +167,8 @@ interface DoudizhuGameStoreState {
   toggleCoachPanel: () => void;
   requestLiveCoach: () => void;
   selectCoachCards: () => void;
+  toggleAutoPlay: () => void;
+  cancelAutoPlay: () => void;
   clearActiveFx: () => void;
   runAITurnIfNeeded: () => void;
   triggerManualBlindQuiz: () => void;
@@ -236,11 +243,27 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
     void seat;
   };
 
+  const disableAutoPlayIfActive = () => {
+    if (get().autoPlay) {
+      humanAutoSeq += 1;
+      set((prev) => ({
+        autoPlay: false,
+        aiThinkingSeat: prev.aiThinkingSeat === 0 ? null : prev.aiThinkingSeat,
+      }));
+    }
+  };
+
   const refreshWinRate = async (nextState: GameState, token: number) => {
     if (nextState.landlordSeat === null) return;
-    const wr = await requestWinRate(nextState, 0);
-    if (get().sessionToken !== token) return;
-    set({ liveWinRate: wr });
+    try {
+      const wr = await requestWinRate(nextState, 0);
+      if (get().sessionToken !== token) return;
+      set({ liveWinRate: wr });
+    } catch (err) {
+      if (!isWorkerCancelledError(err)) {
+        // Ignore unexpected win-rate calculation errors
+      }
+    }
   };
 
   const maybeTriggerBlindQuiz = (nextState: GameState) => {
@@ -373,6 +396,7 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
     seatBubbles: [null, null, null],
     tablePlays: [null, null, null],
     aiThinkingSeat: null,
+    autoPlay: false,
     activeFx: null,
     liveWinRate: DEFAULT_WIN_RATE,
     coachPanelOpen: false,
@@ -392,6 +416,9 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
       player.checkBankruptcyAid();
 
       clearBubbleTimers();
+      cancelDoudizhuAIRequests();
+      aiTurnSeq += 1;
+      humanAutoSeq += 1;
       const token = get().sessionToken + 1;
       const starter = secureRandomInt(3) as Seat;
       const fresh = startNewMatch(baseScore, starter);
@@ -412,6 +439,7 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
         seatBubbles: [null, null, null],
         tablePlays: [null, null, null],
         aiThinkingSeat: null,
+        autoPlay: false,
         activeFx: null,
         liveWinRate: DEFAULT_WIN_RATE,
         coachAdvice: null,
@@ -427,6 +455,9 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
 
     startPuzzle: (puzzle) => {
       clearBubbleTimers();
+      cancelDoudizhuAIRequests();
+      aiTurnSeq += 1;
+      humanAutoSeq += 1;
       const token = get().sessionToken + 1;
       const puzzleState = buildPuzzleGameState(puzzle);
       const initialTablePlays: [HandPattern | null, HandPattern | null, HandPattern | null] = [
@@ -455,6 +486,7 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
         seatBubbles: [null, null, null],
         tablePlays: initialTablePlays,
         aiThinkingSeat: null,
+        autoPlay: false,
         activeFx: null,
         liveWinRate: DEFAULT_WIN_RATE,
         coachPanelOpen: false,
@@ -478,16 +510,23 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
 
     openPuzzlesScreen: () => {
       clearBubbleTimers();
+      cancelDoudizhuAIRequests();
+      aiTurnSeq += 1;
+      humanAutoSeq += 1;
       set((prev) => ({
         screen: 'puzzles',
         sessionToken: prev.sessionToken + 1,
         aiThinkingSeat: null,
+        autoPlay: false,
         activeFx: null,
       }));
     },
 
     openReplayScreen: (record) => {
       clearBubbleTimers();
+      cancelDoudizhuAIRequests();
+      aiTurnSeq += 1;
+      humanAutoSeq += 1;
       const ddProfile = useDoudizhuProfileStore.getState();
       const target = record ?? ddProfile.recentMatches[0] ?? null;
       set((prev) => ({
@@ -495,6 +534,7 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
         replayMatch: target,
         sessionToken: prev.sessionToken + 1,
         aiThinkingSeat: null,
+        autoPlay: false,
         activeFx: null,
       }));
     },
@@ -502,6 +542,9 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
     resumeFromReplaySnapshot: (record, moveIndex) => {
       if (record.moveHistory.length === 0) return;
       clearBubbleTimers();
+      cancelDoudizhuAIRequests();
+      aiTurnSeq += 1;
+      humanAutoSeq += 1;
       const token = get().sessionToken + 1;
       const clampedIdx = Math.max(0, Math.min(record.moveHistory.length - 1, moveIndex));
       const targetMove = record.moveHistory[clampedIdx];
@@ -571,6 +614,7 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
         seatBubbles: [null, null, null],
         tablePlays,
         aiThinkingSeat: null,
+        autoPlay: false,
         activeFx: null,
         liveWinRate: DEFAULT_WIN_RATE,
         coachPanelOpen: false,
@@ -588,10 +632,14 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
 
     returnToHub: () => {
       clearBubbleTimers();
+      cancelDoudizhuAIRequests();
+      aiTurnSeq += 1;
+      humanAutoSeq += 1;
       set((prev) => ({
         screen: 'hub',
         sessionToken: prev.sessionToken + 1,
         aiThinkingSeat: null,
+        autoPlay: false,
         activeFx: null,
         activeBlindQuiz: null,
         blindQuizFeedback: null,
@@ -600,10 +648,14 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
 
     resetSession: () => {
       clearBubbleTimers();
+      cancelDoudizhuAIRequests();
+      aiTurnSeq += 1;
+      humanAutoSeq += 1;
       set((prev) => ({
         screen: 'hub',
         sessionToken: prev.sessionToken + 1,
         aiThinkingSeat: null,
+        autoPlay: false,
         activeFx: null,
         activeBlindQuiz: null,
         blindQuizFeedback: null,
@@ -611,6 +663,7 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
     },
 
     humanBid: (action) => {
+      disableAutoPlayIfActive();
       const { gameState, sessionToken } = get();
       if (gameState.phase !== 'BIDDING' || gameState.currentTurn !== 0) return;
 
@@ -639,12 +692,13 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
     },
 
     humanMingpai: () => {
+      disableAutoPlayIfActive();
       const { gameState, sessionToken } = get();
       try {
         const next = activateMingpai(gameState, 0);
         doudizhuSpeech.announceMingpai();
         soundEngine.playComboSweep();
-        showBubble(0, '明牌 ×4', sessionToken);
+        showBubble(0, gameState.phase === 'BIDDING' ? '明牌 ×4' : '明牌 ×2', sessionToken);
         set({ gameState: next });
       } catch {
         // Ignore
@@ -652,6 +706,7 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
     },
 
     humanDouble: (choice) => {
+      disableAutoPlayIfActive();
       const { gameState, sessionToken } = get();
       if (gameState.phase !== 'DOUBLING' || gameState.doubleChoices[0] !== null) return;
       doudizhuSpeech.announceDouble(choice);
@@ -664,6 +719,7 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
     },
 
     toggleCardSelection: (cardId) => {
+      disableAutoPlayIfActive();
       soundEngine.playSelect();
       set((prev) => {
         const exists = prev.selectedCardIds.includes(cardId);
@@ -678,6 +734,7 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
 
     applySwipeSelection: (orderedSwipedIds) => {
       if (orderedSwipedIds.length === 0) return;
+      disableAutoPlayIfActive();
       if (orderedSwipedIds.length === 1) {
         get().toggleCardSelection(orderedSwipedIds[0]);
         return;
@@ -718,9 +775,13 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
       set({ selectedCardIds: [...nextSet], smartSelectionNotice: null });
     },
 
-    clearSelection: () => set({ selectedCardIds: [], smartSelectionNotice: null }),
+    clearSelection: () => {
+      disableAutoPlayIfActive();
+      set({ selectedCardIds: [], smartSelectionNotice: null });
+    },
 
     cycleHint: () => {
+      disableAutoPlayIfActive();
       const { gameState, hints, hintIndex } = get();
       if (gameState.phase !== 'PLAYING' || gameState.currentTurn !== 0) return;
 
@@ -744,6 +805,7 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
     },
 
     humanPlaySelected: () => {
+      disableAutoPlayIfActive();
       const { gameState, selectedCardIds, sessionToken } = get();
       if (gameState.phase !== 'PLAYING' || gameState.currentTurn !== 0) return;
 
@@ -766,6 +828,7 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
     },
 
     humanPass: () => {
+      disableAutoPlayIfActive();
       const { gameState, sessionToken } = get();
       if (gameState.phase !== 'PLAYING' || gameState.currentTurn !== 0 || gameState.lastPlay === null)
         return;
@@ -786,8 +849,9 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
     },
 
     tickTurnTimer: () => {
-      const { screen, matchMode, gameState, turnSecondsLeft, activeBlindQuiz } = get();
-      if (screen !== 'table' || matchMode === 'puzzle' || activeBlindQuiz !== null) return;
+      const { screen, matchMode, gameState, turnSecondsLeft, activeBlindQuiz, autoPlay } = get();
+      if (screen !== 'table' || matchMode === 'puzzle' || activeBlindQuiz !== null || autoPlay)
+        return;
       if (
         gameState.phase !== 'PLAYING' &&
         gameState.phase !== 'BIDDING' &&
@@ -830,27 +894,56 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
     },
 
     requestLiveCoach: () => {
+      disableAutoPlayIfActive();
       const { gameState, sessionToken } = get();
       if (gameState.phase !== 'PLAYING' || gameState.currentTurn !== 0) {
         set({ coachPanelOpen: true });
         return;
       }
       set({ coachPanelOpen: true, coachLoading: true });
-      void requestCoachAdvice(gameState, 0).then((advice) => {
-        if (get().sessionToken !== sessionToken) return;
-        set({
-          coachAdvice: advice,
-          coachLoading: false,
-          selectedCardIds: advice.isPass ? [] : advice.cards.map((c) => c.id),
+      void requestCoachAdvice(gameState, 0)
+        .then((advice) => {
+          if (get().sessionToken !== sessionToken) return;
+          set({
+            coachAdvice: advice,
+            coachLoading: false,
+            selectedCardIds: advice.isPass ? [] : advice.cards.map((c) => c.id),
+          });
+        })
+        .catch((err) => {
+          if (isWorkerCancelledError(err)) return;
+          if (get().sessionToken === sessionToken) {
+            set({ coachLoading: false });
+          }
         });
-      });
     },
 
     selectCoachCards: () => {
+      disableAutoPlayIfActive();
       const { coachAdvice } = get();
       if (!coachAdvice) return;
       soundEngine.playSelect();
       set({ selectedCardIds: coachAdvice.isPass ? [] : coachAdvice.cards.map((c) => c.id) });
+    },
+
+    toggleAutoPlay: () => {
+      const next = !get().autoPlay;
+      if (!next) {
+        humanAutoSeq += 1;
+        set((prev) => ({
+          autoPlay: false,
+          aiThinkingSeat: prev.aiThinkingSeat === 0 ? null : prev.aiThinkingSeat,
+        }));
+        return;
+      }
+      set({ autoPlay: true });
+      if (get().screen === 'table' && get().gameState.currentTurn === 0) {
+        get().runAITurnIfNeeded();
+      }
+    },
+
+    cancelAutoPlay: () => {
+      disableAutoPlayIfActive();
     },
 
     clearActiveFx: () => set({ activeFx: null }),
@@ -884,10 +977,15 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
       });
     },
 
-    dismissBlindQuiz: () => set({ activeBlindQuiz: null, blindQuizFeedback: null }),
+    dismissBlindQuiz: () => {
+      set({ activeBlindQuiz: null, blindQuizFeedback: null });
+      if (get().autoPlay) {
+        get().runAITurnIfNeeded();
+      }
+    },
 
     runAITurnIfNeeded: () => {
-      const { screen, gameState, sessionToken, matchMode } = get();
+      const { screen, gameState, sessionToken, matchMode, autoPlay, activeBlindQuiz } = get();
       if (screen !== 'table') return;
       if (
         gameState.phase !== 'BIDDING' &&
@@ -899,103 +997,141 @@ export const useDoudizhuGameStore = create<DoudizhuGameStoreState>((set, get) =>
       }
 
       const seat = gameState.currentTurn;
-      if (seat === 0) {
-        set({ aiThinkingSeat: null });
-        if (get().coachPanelOpen && gameState.phase === 'PLAYING') {
-          get().requestLiveCoach();
+      const isHumanAuto = seat === 0;
+      if (isHumanAuto) {
+        if (!autoPlay || activeBlindQuiz !== null) {
+          set({ aiThinkingSeat: null });
+          if (get().coachPanelOpen && gameState.phase === 'PLAYING' && !autoPlay) {
+            get().requestLiveCoach();
+          }
+          return;
         }
-        return;
+        if (get().aiThinkingSeat === 0) return;
       }
 
+      const mySeq = isHumanAuto ? ++humanAutoSeq : ++aiTurnSeq;
+      const isStillValid = () =>
+        get().sessionToken === sessionToken &&
+        (isHumanAuto
+          ? mySeq === humanAutoSeq && get().autoPlay && get().gameState.currentTurn === 0
+          : mySeq === aiTurnSeq);
+
       set({ aiThinkingSeat: seat });
-      const difficulty: AIDifficulty =
-        matchMode === 'puzzle' ? 'master' : useDoudizhuProfileStore.getState().difficulty;
-      const delayMs = matchMode === 'puzzle' ? 500 : 650 + Math.floor(Math.random() * 450);
+      const difficulty: AIDifficulty = isHumanAuto
+        ? 'intermediate'
+        : matchMode === 'puzzle'
+          ? 'master'
+          : useDoudizhuProfileStore.getState().difficulty;
+      const delayMs = isHumanAuto
+        ? 500
+        : matchMode === 'puzzle'
+          ? 500
+          : 650 + Math.floor(Math.random() * 450);
 
       void (async () => {
-        if (gameState.phase === 'BIDDING') {
-          const [bid] = await Promise.all([requestAIBid(gameState, seat, difficulty), sleep(delayMs)]);
-          if (get().sessionToken !== sessionToken) return;
+        try {
+          if (gameState.phase === 'BIDDING') {
+            const [bid] = await Promise.all([
+              requestAIBid(gameState, seat, difficulty),
+              sleep(delayMs),
+            ]);
+            if (!isStillValid()) return;
 
-          const isFirstCall = gameState.firstCallerSeat === null;
-          doudizhuSpeech.announceBid(bid, isFirstCall);
-          soundEngine.playSelect();
+            const isFirstCall = gameState.firstCallerSeat === null;
+            doudizhuSpeech.announceBid(bid, isFirstCall);
+            soundEngine.playSelect();
 
-          const label =
-            bid === 'CALL' ? '叫地主' : bid === 'GRAB' ? '抢地主' : isFirstCall ? '不叫' : '不抢';
-          const prevRedeal = gameState.redealCount;
-          const next = applyBidAction(gameState, seat, bid);
+            const label =
+              bid === 'CALL'
+                ? '叫地主'
+                : bid === 'GRAB'
+                  ? '抢地主'
+                  : isFirstCall
+                    ? '不叫'
+                    : '不抢';
+            const prevRedeal = gameState.redealCount;
+            const next = applyBidAction(gameState, seat, bid);
 
-          if (next.redealCount > prevRedeal) {
-            soundEngine.playDeal();
-            set({ tablePlays: [null, null, null], seatBubbles: [null, null, null] });
-            showBubble(seat, '全不叫 · 重新发牌', sessionToken);
-          } else {
-            showBubble(seat, label, sessionToken);
+            if (next.redealCount > prevRedeal) {
+              soundEngine.playDeal();
+              set({ tablePlays: [null, null, null], seatBubbles: [null, null, null] });
+              showBubble(seat, '全不叫 · 重新发牌', sessionToken);
+            } else {
+              showBubble(seat, label, sessionToken);
+            }
+            commitState(next, sessionToken);
+            get().runAITurnIfNeeded();
+            return;
           }
-          commitState(next, sessionToken);
-          get().runAITurnIfNeeded();
-          return;
-        }
 
-        if (gameState.phase === 'DOUBLING') {
-          const [choice] = await Promise.all([
-            requestAIDouble(gameState, seat, difficulty),
-            sleep(550),
+          if (gameState.phase === 'DOUBLING') {
+            const [choice] = await Promise.all([
+              requestAIDouble(gameState, seat, difficulty),
+              sleep(isHumanAuto ? 500 : 550),
+            ]);
+            if (!isStillValid()) return;
+            doudizhuSpeech.announceDouble(choice);
+            soundEngine.playSelect();
+            showBubble(
+              seat,
+              choice === 4 ? '超级加倍' : choice === 2 ? '加倍' : '不加倍',
+              sessionToken,
+            );
+            const next = applyDoubleChoice(gameState, seat, choice);
+            commitState(next, sessionToken);
+            get().runAITurnIfNeeded();
+            return;
+          }
+
+          const [decision] = await Promise.all([
+            requestAIMove(gameState, seat, difficulty, { matchMode }),
+            sleep(delayMs),
           ]);
-          if (get().sessionToken !== sessionToken) return;
-          doudizhuSpeech.announceDouble(choice);
-          soundEngine.playSelect();
-          showBubble(
-            seat,
-            choice === 4 ? '超级加倍' : choice === 2 ? '加倍' : '不加倍',
-            sessionToken,
-          );
-          const next = applyDoubleChoice(gameState, seat, choice);
-          commitState(next, sessionToken);
-          get().runAITurnIfNeeded();
-          return;
-        }
+          if (!isStillValid()) return;
 
-        const [decision] = await Promise.all([
-          requestAIMove(gameState, seat, difficulty),
-          sleep(delayMs),
-        ]);
-        if (get().sessionToken !== sessionToken) return;
-
-        if (decision.isPass) {
-          soundEngine.playPass();
-          doudizhuSpeech.announcePass();
-          showBubble(seat, '不要', sessionToken);
-          const next = applyPassTurn(gameState, seat);
-          const nextTablePlays: [HandPattern | null, HandPattern | null, HandPattern | null] =
-            next.lastPlay === null
-              ? [null, null, null]
-              : ([
-                  get().tablePlays[0],
-                  seat === 1 ? null : get().tablePlays[1],
-                  seat === 2 ? null : get().tablePlays[2],
-                ] as [HandPattern | null, HandPattern | null, HandPattern | null]);
-          set({ tablePlays: nextTablePlays });
-          commitState(next, sessionToken);
-        } else {
-          const next = applyPlayCards(gameState, seat, decision.cards);
-          const nextTablePlays: [HandPattern | null, HandPattern | null, HandPattern | null] =
-            gameState.lastPlay === null
-              ? [null, seat === 1 ? decision.pattern : null, seat === 2 ? decision.pattern : null]
-              : ([
-                  get().tablePlays[0],
-                  seat === 1 ? decision.pattern : get().tablePlays[1],
-                  seat === 2 ? decision.pattern : get().tablePlays[2],
-                ] as [HandPattern | null, HandPattern | null, HandPattern | null]);
-          set({ tablePlays: nextTablePlays });
-          if (decision.pattern) {
-            triggerPatternFeedback(seat, decision.pattern, next.hands[seat].length);
+          if (decision.isPass) {
+            soundEngine.playPass();
+            doudizhuSpeech.announcePass();
+            showBubble(seat, '不要', sessionToken);
+            const next = applyPassTurn(gameState, seat);
+            const nextTablePlays: [HandPattern | null, HandPattern | null, HandPattern | null] =
+              next.lastPlay === null
+                ? [null, null, null]
+                : ([
+                    seat === 0 ? null : get().tablePlays[0],
+                    seat === 1 ? null : get().tablePlays[1],
+                    seat === 2 ? null : get().tablePlays[2],
+                  ] as [HandPattern | null, HandPattern | null, HandPattern | null]);
+            set({ tablePlays: nextTablePlays });
+            commitState(next, sessionToken);
+          } else {
+            const next = applyPlayCards(gameState, seat, decision.cards);
+            const nextTablePlays: [HandPattern | null, HandPattern | null, HandPattern | null] =
+              gameState.lastPlay === null
+                ? [
+                    seat === 0 ? decision.pattern : null,
+                    seat === 1 ? decision.pattern : null,
+                    seat === 2 ? decision.pattern : null,
+                  ]
+                : ([
+                    seat === 0 ? decision.pattern : get().tablePlays[0],
+                    seat === 1 ? decision.pattern : get().tablePlays[1],
+                    seat === 2 ? decision.pattern : get().tablePlays[2],
+                  ] as [HandPattern | null, HandPattern | null, HandPattern | null]);
+            set({ tablePlays: nextTablePlays });
+            if (decision.pattern) {
+              triggerPatternFeedback(seat, decision.pattern, next.hands[seat].length);
+            }
+            commitState(next, sessionToken);
           }
-          commitState(next, sessionToken);
-        }
 
-        get().runAITurnIfNeeded();
+          get().runAITurnIfNeeded();
+        } catch (err) {
+          if (isWorkerCancelledError(err)) return;
+          if (get().sessionToken === sessionToken && get().aiThinkingSeat === seat) {
+            set({ aiThinkingSeat: null });
+          }
+        }
       })();
     },
   };
